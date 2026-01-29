@@ -355,7 +355,7 @@ cd frontend && python -m http.server 8000
 
 ## 👥 Authors
 
-**Or Reshef S** 
+**Or Reshef S** & 
 **Gal Azoulay**
 **Final Year Project** - Computer Science  
 
