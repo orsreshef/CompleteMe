@@ -1,4 +1,4 @@
-# 🧩 COMPLETE ME
+### 🧩 COMPLETE ME
 
 > **Computer Science Final Year Project**  
 > An intelligent puzzle game for children that uses Computer Vision to automatically validate puzzle piece selections.
