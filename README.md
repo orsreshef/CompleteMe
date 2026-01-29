@@ -212,51 +212,6 @@ complete-me/
 - **Git**
 - **Unsplash API Key** ([Get one free](https://unsplash.com/developers))
 ```
-
-### Database Setup
-```bash
-# Install PostgreSQL 
-
-# Create database
-createdb complete_me
-
-# Run schema
-psql complete_me < database/schema.sql
-```
-
-### 3. Backend Setup
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate
-source venv/bin/activate  # Mac/Linux
-# venv\Scripts\activate    # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env and add your UNSPLASH_ACCESS_KEY
-
-# Run server
-python app.py
-```
-
-✅ Backend running at: `http://localhost:5000`
-
-### 4. Frontend Setup
-```bash
-cd frontend
-
-python -m http.server 8000
-```
-
-✅ Frontend running at: `http://localhost:8000`
-
 ---
 
 ## 📡 API Endpoints
@@ -337,19 +292,6 @@ CREATE TABLE game_history (
     score_earned INTEGER,
     played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-```
-
----
-
-## 🚀 Deployment
-
-### Local Development
-```bash
-# Backend
-cd backend && python app.py
-
-# Frontend
-cd frontend && python -m http.server 8000
 ```
 ---
 
