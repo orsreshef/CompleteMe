@@ -1,4 +1,4 @@
-### 🧩 COMPLETE ME
+# 🧩 COMPLETE ME
 
 > **Computer Science Final Year Project**  
 > An intelligent puzzle game for children that uses Computer Vision to automatically validate puzzle piece selections.
@@ -13,7 +13,8 @@
 
 ## 📖 Overview
 
-**COMPLETE ME** transforms traditional children's puzzles into an autonomous digital experience. Instead of requiring parental supervision, the system uses advanced Computer Vision algorithms to validate whether a child has selected the correct puzzle piece.
+**COMPLETE ME** 
+transforms traditional children's puzzles into an autonomous digital experience. Instead of requiring parental supervision, the system uses advanced Computer Vision algorithms to validate whether a child has selected the correct puzzle piece.
 
 ### 🎯 The Problem
 
