@@ -12,9 +12,19 @@
 ---
 
 ## 📖 Overview
+ 
+**COMPLETE ME**
 
-**COMPLETE ME** 
-transforms traditional children's puzzles into an autonomous digital experience. Instead of requiring parental supervision, the system uses advanced Computer Vision algorithms to validate whether a child has selected the correct puzzle piece.
+Transforms traditional children's puzzles into an autonomous digital experience. Instead of requiring parental supervision, the system uses advanced Computer Vision algorithms to validate whether a child has selected the correct puzzle piece.
+
+Below are images that demonstrate the general appearance of the site we will build.
+
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/4f94f25c-fb9f-4765-a698-fa7f79120767" />
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/2813c8b9-73ec-408c-9dc8-c06bc2762633" />
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/13593e1c-510f-4e61-9d98-5d9dbba84f46" />
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/fac32664-9adc-4ee3-8212-7261c29f043e" />
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/ddd7e15a-6e8c-495e-a098-3520501112c8" />
+<img width="240" height="440" alt="image" src="https://github.com/user-attachments/assets/7c09d9c2-0415-4e51-ac2d-d3f035000456" />
 
 ### 🎯 The Problem
 
@@ -350,16 +360,6 @@ cd frontend && python -m http.server 8000
 **Final Year Project** - Computer Science  
 
 ---
-
----
-
-<p align="center">
-  <strong>Made with ❤️ for children's learning and development</strong>
-</p>
-
-<p align="center">
-  <sub>Computer Science Final Year Project</sub>
-</p>
 
 <p align="center">
   <a href="#-complete-me">Back to Top ↑</a>
