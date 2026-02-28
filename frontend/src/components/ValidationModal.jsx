@@ -100,9 +100,9 @@ const ValidationModal = ({ result, onClose }) => {
                 {region_results.map((r) => (
                   <div
                     key={r.zone_index}
-                    className={`region-result-item ${r.is_match ? 'match' : 'no-match'}`}
+                    className={`region-result-item ${r.is_correct ? 'match' : 'no-match'}`}
                   >
-                    <span className="region-result-icon">{r.is_match ? '✓' : '✗'}</span>
+                    <span className="region-result-icon">{r.is_correct ? '✓' : '✗'}</span>
                     <span className="region-result-label">Zone {r.zone_index + 1}</span>
                     <span className="region-result-pct">
                       {(r.confidence * 100).toFixed(0)}%

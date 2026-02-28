@@ -119,7 +119,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
     if (!validationResult?.is_correct && validationResult?.region_results) {
       // Remove placements for zones that were wrong
       const wrongZones = validationResult.region_results
-        .filter((r) => !r.is_match)
+        .filter((r) => !r.is_correct)
         .map((r) => String(r.zone_index));
       if (wrongZones.length > 0) {
         setPlacements((prev) => {
