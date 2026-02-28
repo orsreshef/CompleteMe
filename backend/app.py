@@ -292,7 +292,6 @@ def create_puzzle():
         active_games[game_id] = {
             'puzzle_image': puzzle_data['puzzle_image'],
             'missing_positions': puzzle_data['missing_positions'],
-            'missing_pieces': puzzle_data['missing_pieces'],
             'num_regions': puzzle_data['num_regions'],
             'difficulty': difficulty,
             'attempts': 0
