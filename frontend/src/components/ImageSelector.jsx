@@ -106,9 +106,6 @@ const ImageSelector = ({ difficulty, difficultyName, onStartGame, onBack }) => {
             <p className="selector-subtitle">How do you want to find your puzzle image?</p>
           </div>
 
-          <div className="difficulty-badge">
-            {difficultyName} Level
-          </div>
         </motion.div>
 
         {/* Method Cards */}
@@ -145,6 +142,16 @@ const ImageSelector = ({ difficulty, difficultyName, onStartGame, onBack }) => {
             description="Pick a topic!"
             color="#8b5cf6"
           />
+        </motion.div>
+
+        {/* Difficulty badge — shown below the 3 option cards */}
+        <motion.div
+          className="difficulty-badge-row"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <span className="difficulty-badge">{difficultyName} Level</span>
         </motion.div>
 
         {/* Content Area */}
