@@ -1,24 +1,20 @@
 """
-Feature Extraction Module
-חילוץ מאפיינים עמוקים מתמונות באמצעות רשתות נוירונים מאומנות מראש
+Feature Extraction Module - PyTorch Version
+חילוץ מאפיינים עמוקים מתמונות באמצעות PyTorch
 """
 
+import torch
+import torchvision.models as models
+import torchvision.transforms as transforms
+from PIL import Image
 import numpy as np
 import cv2
-from tensorflow.keras.applications import ResNet50, VGG16, EfficientNetB0
-from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
-from tensorflow.keras.applications.vgg16 import preprocess_input as vgg_preprocess
-from tensorflow.keras.applications.efficientnet import preprocess_input as efficientnet_preprocess
 from scipy.spatial.distance import cosine, euclidean
-import tensorflow as tf
-
-# השתקת אזהרות TensorFlow
-tf.get_logger().setLevel('ERROR')
 
 
 class FeatureExtractor:
     """
-    מחלקה לחילוץ מאפיינים מתמונות באמצעות מודלים שונים
+    מחלקה לחילוץ מאפיינים מתמונות באמצעות PyTorch
     """
 
     def __init__(self, model_name='resnet50'):
@@ -26,126 +22,134 @@ class FeatureExtractor:
         אתחול המודל
 
         Args:
-            model_name: שם המודל - 'resnet50', 'vgg16', או 'efficientnet'
+            model_name: 'resnet50', 'vgg16', 'resnet18', 'efficientnet_b0'
         """
         self.model_name = model_name
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self._load_model()
-        print(f"✅ Feature Extractor loaded: {model_name}")
+        self.model.eval()  # מצב הערכה (לא אימון)
+
+        # הגדרת transformations
+        self.transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            )
+        ])
+
+        print(
+            f"✅ PyTorch Feature Extractor loaded: {model_name} on {self.device}")
 
     def _load_model(self):
         """טוען את המודל המאומן מראש"""
         if self.model_name == 'resnet50':
-            return ResNet50(weights='imagenet', include_top=False, pooling='avg')
+            model = models.resnet50(
+                weights=models.ResNet50_Weights.IMAGENET1K_V1)
+            # מסיר את השכבה האחרונה (FC layer)
+            model = torch.nn.Sequential(*list(model.children())[:-1])
+
+        elif self.model_name == 'resnet18':
+            model = models.resnet18(
+                weights=models.ResNet18_Weights.IMAGENET1K_V1)
+            model = torch.nn.Sequential(*list(model.children())[:-1])
+
         elif self.model_name == 'vgg16':
-            return VGG16(weights='imagenet', include_top=False, pooling='avg')
-        elif self.model_name == 'efficientnet':
-            return EfficientNetB0(weights='imagenet', include_top=False, pooling='avg')
+            model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+            # רק את ה-features, בלי classifier
+            model = model.features
+
+        elif self.model_name == 'efficientnet_b0':
+            model = models.efficientnet_b0(
+                weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+            # מסיר את ה-classifier
+            model.classifier = torch.nn.Identity()
+
         else:
             raise ValueError(f"Unknown model: {self.model_name}")
 
-    def _preprocess_image(self, image):
-        """
-        מכין תמונה לעיבוד במודל
-
-        Args:
-            image: תמונה במבנה numpy array (BGR)
-
-        Returns:
-            תמונה מעובדת מוכנה למודל
-        """
-        # המרה מ-BGR ל-RGB (OpenCV vs Keras)
-        if len(image.shape) == 3 and image.shape[2] == 3:
-            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        else:
-            image_rgb = image
-
-        # שינוי גודל ל-224x224 (גודל סטנדרטי למודלים)
-        img_resized = cv2.resize(image_rgb, (224, 224))
-
-        # הוספת ממד batch
-        img_batch = np.expand_dims(img_resized, axis=0)
-
-        # Preprocessing לפי המודל
-        if self.model_name == 'resnet50':
-            return resnet_preprocess(img_batch.astype('float32'))
-        elif self.model_name == 'vgg16':
-            return vgg_preprocess(img_batch.astype('float32'))
-        elif self.model_name == 'efficientnet':
-            return efficientnet_preprocess(img_batch.astype('float32'))
+        return model.to(self.device)
 
     def extract_features(self, image):
         """
-        חולץ וקטור מאפיינים מתמונה
+        מחלץ מאפיינים מתמונה
 
         Args:
-            image: תמונה (numpy array)
+            image: תמונה (numpy array BGR או PIL Image)
 
         Returns:
-            וקטור מאפיינים (1D numpy array)
+            numpy array: וקטור מאפיינים
         """
-        # טיפול בתמונות ריקות או קטנות מדי
-        if image is None or image.size == 0:
-            raise ValueError("Invalid image: empty or None")
+        # המרה ל-PIL אם צריך
+        if isinstance(image, np.ndarray):
+            # OpenCV משתמש ב-BGR, צריך להמיר ל-RGB
+            if len(image.shape) == 3 and image.shape[2] == 3:
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(image.astype('uint8'))
 
-        if image.shape[0] < 10 or image.shape[1] < 10:
-            raise ValueError(f"Image too small: {image.shape}")
-
-        # עיבוד מקדים
-        processed_image = self._preprocess_image(image)
+        # הכנת התמונה
+        img_tensor = self.transform(image).unsqueeze(0).to(self.device)
 
         # חילוץ features
-        features = self.model.predict(processed_image, verbose=0)
+        with torch.no_grad():
+            features = self.model(img_tensor)
 
-        # המרה לוקטור 1D
-        return features.flatten()
+        # המרה ל-numpy
+        features = features.squeeze().cpu().numpy()
 
-    def compare_features(self, features1, features2, metric='cosine'):
+        # נרמול
+        if features.ndim > 1:
+            features = features.flatten()
+
+        return features
+
+    def compare_features(self, features1, features2, method='cosine'):
         """
-        משווה בין שני וקטורי מאפיינים
+        משווה שני וקטורי מאפיינים
 
         Args:
-            features1: וקטור מאפיינים ראשון
-            features2: וקטור מאפיינים שני
-            metric: מדד השוואה - 'cosine' או 'euclidean'
+            features1: וקטור ראשון
+            features2: וקטור שני
+            method: 'cosine' או 'euclidean'
 
         Returns:
-            ציון דמיון (0-1, כאשר 1 = זהה לחלוטין)
+            float: ציון דמיון (0-1)
         """
-        if metric == 'cosine':
-            # Cosine similarity (1 - cosine distance)
-            similarity = 1 - cosine(features1, features2)
-        elif metric == 'euclidean':
-            # Euclidean distance (מנורמל)
-            distance = euclidean(features1, features2)
-            # המרה לציון דמיון (ככל שהמרחק קטן יותר, הדמיון גדול יותר)
-            max_distance = np.sqrt(len(features1))  # מרחק מקסימלי אפשרי
-            similarity = 1 - (distance / max_distance)
+        if method == 'cosine':
+            # Cosine similarity: 1 = זהה, 0 = שונה לגמרי
+            similarity = 1 - cosine(features1.flatten(), features2.flatten())
+        elif method == 'euclidean':
+            # Euclidean distance: קטן יותר = דומה יותר
+            distance = euclidean(features1.flatten(), features2.flatten())
+            # נרמול לטווח 0-1
+            similarity = 1 / (1 + distance / 100)  # חלוקה ב-100 לנרמול
         else:
-            raise ValueError(f"Unknown metric: {metric}")
+            raise ValueError(f"Unknown method: {method}")
 
-        return max(0, min(1, similarity))  # מוודא שהערך בין 0 ל-1
+        return max(0, min(1, similarity))
 
-    def validate_match(self, image1, image2, threshold=0.85):
+    def validate(self, image1, image2, threshold=0.75):
         """
-        בודק אם שתי תמונות דומות מספיק
+        בדיקה מהירה של התאמה בין שתי תמונות
 
         Args:
             image1: תמונה ראשונה
             image2: תמונה שנייה
-            threshold: סף דמיון (0.85 = 85%)
+            threshold: סף דמיון
 
         Returns:
-            tuple: (is_match: bool, similarity_score: float)
+            tuple: (is_match, confidence)
         """
         try:
             features1 = self.extract_features(image1)
             features2 = self.extract_features(image2)
 
-            similarity = self.compare_features(features1, features2)
+            confidence = self.compare_features(features1, features2)
+            is_match = confidence >= threshold
 
-            is_match = similarity >= threshold
-
-            return is_match, similarity
+            return is_match, confidence
 
         except Exception as e:
             print(f"❌ Error in feature validation: {e}")
@@ -154,42 +158,32 @@ class FeatureExtractor:
 
 class MultiModelFeatureExtractor:
     """
-    מחלקה שמשתמשת במספר מודלים במקביל לדיוק מקסימלי
+    מחלקה שמשתמשת במספר מודלים ומשלבת את התוצאות
     """
 
-    def __init__(self):
-        """אתחול מספר מודלים"""
-        print("🔄 Loading multiple models for ensemble feature extraction...")
-        self.extractors = {
-            'resnet50': FeatureExtractor('resnet50'),
-            'vgg16': FeatureExtractor('vgg16'),
-        }
-        print("✅ All models loaded successfully!")
-
-    def extract_ensemble_features(self, image):
+    def __init__(self, models=['resnet50', 'vgg16']):
         """
-        חולץ features ממספר מודלים ומשלב אותם
+        אתחול מספר מודלים
 
         Args:
-            image: תמונה
-
-        Returns:
-            dict: מילון עם features מכל מודל
+            models: רשימת שמות מודלים
         """
-        features_dict = {}
-
-        for name, extractor in self.extractors.items():
+        self.extractors = {}
+        for model_name in models:
             try:
-                features = extractor.extract_features(image)
-                features_dict[name] = features
+                self.extractors[model_name] = FeatureExtractor(model_name)
             except Exception as e:
-                print(f"⚠️ Failed to extract features with {name}: {e}")
+                print(f"⚠️ Failed to load {model_name}: {e}")
 
-        return features_dict
+        if not self.extractors:
+            raise ValueError("No models loaded successfully")
 
-    def validate_match_ensemble(self, image1, image2, threshold=0.85):
+        print(
+            f"✅ Multi-Model Extractor initialized with {len(self.extractors)} models")
+
+    def validate(self, image1, image2, threshold=0.75):
         """
-        משווה תמונות באמצעות מספר מודלים ומחזיר ממוצע
+        בדיקה משולבת עם מספר מודלים
 
         Args:
             image1: תמונה ראשונה
@@ -197,93 +191,42 @@ class MultiModelFeatureExtractor:
             threshold: סף דמיון
 
         Returns:
-            tuple: (is_match, average_similarity, detailed_scores)
+            tuple: (is_match, confidence)
         """
-        scores = {}
+        confidences = []
 
-        for name, extractor in self.extractors.items():
+        for model_name, extractor in self.extractors.items():
             try:
-                is_match, similarity = extractor.validate_match(
-                    image1, image2, threshold)
-                scores[name] = similarity
+                _, conf = extractor.validate(image1, image2, threshold)
+                confidences.append(conf)
             except Exception as e:
-                print(f"⚠️ Failed validation with {name}: {e}")
-                scores[name] = 0.0
+                print(f"⚠️ Error in {model_name}: {e}")
 
-        # חישוב ממוצע משוקלל
-        weights = {
-            'resnet50': 0.6,  # משקל גבוה יותר ל-ResNet
-            'vgg16': 0.4,
-        }
+        if not confidences:
+            return False, 0.0
 
-        weighted_similarity = sum(
-            scores[name] * weights[name] for name in scores)
+        # ממוצע של כל המודלים
+        avg_confidence = np.mean(confidences)
+        is_match = avg_confidence >= threshold
 
-        is_match = weighted_similarity >= threshold
-
-        return is_match, weighted_similarity, scores
-
-
-# פונקציות עזר
-def extract_features_from_path(image_path, model_name='resnet50'):
-    """
-    חולץ features מתמונה לפי נתיב
-
-    Args:
-        image_path: נתיב לתמונה
-        model_name: שם המודל
-
-    Returns:
-        וקטור features
-    """
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Could not load image: {image_path}")
-
-    extractor = FeatureExtractor(model_name)
-    return extractor.extract_features(image)
-
-
-def compare_images(image1, image2, model_name='resnet50'):
-    """
-    משווה שתי תמונות
-
-    Args:
-        image1: תמונה ראשונה או נתיב
-        image2: תמונה שנייה או נתיב
-        model_name: שם המודל
-
-    Returns:
-        ציון דמיון
-    """
-    extractor = FeatureExtractor(model_name)
-
-    # טעינת תמונות אם הן נתיבים
-    if isinstance(image1, str):
-        image1 = cv2.imread(image1)
-    if isinstance(image2, str):
-        image2 = cv2.imread(image2)
-
-    is_match, similarity = extractor.validate_match(image1, image2)
-
-    return similarity
+        return is_match, avg_confidence
 
 
 if __name__ == "__main__":
-    # בדיקה
-    print("🧪 Testing Feature Extraction Module...")
+    print("🧪 Testing PyTorch Feature Extractor...")
 
-    # יצירת תמונת דמה
-    test_image = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+    # Create test images
+    test_image1 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+    test_image2 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
 
-    # בדיקת extractor יחיד
+    # Test single model
     extractor = FeatureExtractor('resnet50')
-    features = extractor.extract_features(test_image)
-    print(f"✅ Features extracted: shape={features.shape}")
+    is_match, confidence = extractor.validate(test_image1, test_image2)
+    print(f"Single Model - Match: {is_match}, Confidence: {confidence:.3f}")
 
-    # בדיקת ensemble
-    ensemble = MultiModelFeatureExtractor()
-    features_dict = ensemble.extract_ensemble_features(test_image)
-    print(f"✅ Ensemble features: {list(features_dict.keys())}")
+    # Test multi-model
+    multi_extractor = MultiModelFeatureExtractor(['resnet50', 'vgg16'])
+    is_match, confidence = multi_extractor.validate(test_image1, test_image2)
+    print(f"Multi Model - Match: {is_match}, Confidence: {confidence:.3f}")
 
-    print("✅ Feature Extraction Module - All tests passed!")
+    print("✅ PyTorch Feature Extractor - All tests passed!")

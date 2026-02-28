@@ -1,6 +1,6 @@
 """
-Computer Vision Validator Module
-Integrated validation system combining all CV techniques
+Computer Vision Validator - Updated Version
+משלב את כל האלגוריתמים לוולידציה מקיפה עם בדיקת גבולות
 """
 
 import numpy as np
@@ -9,499 +9,335 @@ from utils.feature_extraction import FeatureExtractor, MultiModelFeatureExtracto
 from utils.color_analysis import ColorAnalyzer
 from utils.texture_analysis import TextureAnalyzer
 from utils.edge_detection import EdgeAnalyzer
-from utils.semantic_analysis import SemanticAnalyzer, AdvancedSemanticAnalyzer
-from .image_processor import ImageProcessor
+# from utils.semantic_analysis import SemanticAnalyzer
+from utils.boundary_matcher import BoundaryMatcher
+from models.image_processor import ImageProcessor
 
 
 class CVValidator:
     """
-    Comprehensive Computer Vision Validator
-    Combines multiple CV techniques for robust image matching
-    """
-
-    def __init__(self, use_ensemble=True, verbose=True):
-        """
-        Initialize the CV Validator with all analysis modules
-
-        Args:
-            use_ensemble: whether to use ensemble feature extraction
-            verbose: whether to print detailed information
-        """
-        self.verbose = verbose
-
-        if self.verbose:
-            print("🔄 Initializing Computer Vision Validator...")
-
-        # Initialize all analyzers
-        if use_ensemble:
-            self.feature_extractor = MultiModelFeatureExtractor()
-        else:
-            self.feature_extractor = FeatureExtractor('resnet50')
-
-        self.color_analyzer = ColorAnalyzer()
-        self.texture_analyzer = TextureAnalyzer()
-        self.edge_analyzer = EdgeAnalyzer()
-        self.semantic_analyzer = AdvancedSemanticAnalyzer()
-        self.image_processor = ImageProcessor()
-
-        self.use_ensemble = use_ensemble
-
-        if self.verbose:
-            print("✅ Computer Vision Validator ready!")
-
-    def preprocess_images(self, image1, image2):
-        """
-        Preprocess both images for consistent analysis
-
-        Args:
-            image1: first image
-            image2: second image
-
-        Returns:
-            tuple: (processed_image1, processed_image2)
-        """
-        # Normalize both images
-        img1 = self.image_processor.normalize_image(image1)
-        img2 = self.image_processor.normalize_image(image2)
-
-        # Resize to same dimensions if needed
-        h1, w1 = img1.shape[:2]
-        h2, w2 = img2.shape[:2]
-
-        if (h1, w1) != (h2, w2):
-            # Resize second image to match first
-            img2 = cv2.resize(img2, (w1, h1), interpolation=cv2.INTER_AREA)
-
-        return img1, img2
-
-    def validate_comprehensive(self, original_patch, selected_patch, weights=None):
-        """
-        Comprehensive validation using all CV techniques
-
-        Args:
-            original_patch: the correct piece from original image
-            selected_patch: the piece selected by user
-            weights: dict of weights for each validation method
-
-        Returns:
-            tuple: (is_match, final_score, detailed_results)
-        """
-        if weights is None:
-            # Default weights (can be tuned)
-            weights = {
-                'features': 0.30,      # Deep features - most important
-                'color': 0.25,         # Color analysis
-                'texture': 0.20,       # Texture analysis
-                'edges': 0.15,         # Edge analysis
-                'semantic': 0.10       # Semantic understanding
-            }
-
-        # Preprocess images
-        img1, img2 = self.preprocess_images(original_patch, selected_patch)
-
-        if self.verbose:
-            print("\n🔍 Starting comprehensive validation...")
-
-        results = {}
-
-        # 1. Feature-based validation (Deep Learning)
-        try:
-            if self.use_ensemble:
-                is_feat_match, feat_score, feat_details = \
-                    self.feature_extractor.validate_match_ensemble(img1, img2)
-            else:
-                is_feat_match, feat_score = \
-                    self.feature_extractor.validate_match(img1, img2)
-                feat_details = {}
-
-            results['features'] = {
-                'score': feat_score,
-                'is_match': is_feat_match,
-                'details': feat_details
-            }
-            if self.verbose:
-                print(f"   ✓ Features: {feat_score:.3f}")
-        except Exception as e:
-            print(f"   ✗ Features failed: {e}")
-            results['features'] = {'score': 0.0, 'is_match': False}
-
-        # 2. Color analysis
-        try:
-            is_color_match, color_score, color_details = \
-                self.color_analyzer.validate_color_match(img1, img2)
-
-            results['color'] = {
-                'score': color_score,
-                'is_match': is_color_match,
-                'details': color_details
-            }
-            if self.verbose:
-                print(f"   ✓ Color: {color_score:.3f}")
-        except Exception as e:
-            print(f"   ✗ Color failed: {e}")
-            results['color'] = {'score': 0.0, 'is_match': False}
-
-        # 3. Texture analysis
-        try:
-            is_texture_match, texture_score, texture_details = \
-                self.texture_analyzer.validate_texture_match(img1, img2)
-
-            results['texture'] = {
-                'score': texture_score,
-                'is_match': is_texture_match,
-                'details': texture_details
-            }
-            if self.verbose:
-                print(f"   ✓ Texture: {texture_score:.3f}")
-        except Exception as e:
-            print(f"   ✗ Texture failed: {e}")
-            results['texture'] = {'score': 0.0, 'is_match': False}
-
-        # 4. Edge analysis
-        try:
-            is_edge_match, edge_score, edge_details = \
-                self.edge_analyzer.validate_edge_match(img1, img2)
-
-            results['edges'] = {
-                'score': edge_score,
-                'is_match': is_edge_match,
-                'details': edge_details
-            }
-            if self.verbose:
-                print(f"   ✓ Edges: {edge_score:.3f}")
-        except Exception as e:
-            print(f"   ✗ Edges failed: {e}")
-            results['edges'] = {'score': 0.0, 'is_match': False}
-
-        # 5. Semantic analysis
-        try:
-            is_semantic_match, semantic_score, semantic_details = \
-                self.semantic_analyzer.validate_contextual_match(img1, img2)
-
-            results['semantic'] = {
-                'score': semantic_score,
-                'is_match': is_semantic_match,
-                'details': semantic_details
-            }
-            if self.verbose:
-                print(f"   ✓ Semantic: {semantic_score:.3f}")
-        except Exception as e:
-            print(f"   ✗ Semantic failed: {e}")
-            results['semantic'] = {'score': 0.0, 'is_match': False}
-
-        # Calculate weighted final score
-        final_score = sum(
-            results[method]['score'] * weights[method]
-            for method in weights.keys()
-        )
-
-        # Normalize to 0-1
-        final_score = max(0.0, min(1.0, final_score))
-
-        # Determine if it's a match (threshold: 0.75)
-        is_match = final_score >= 0.75
-
-        if self.verbose:
-            print(
-                f"\n⭐ Final Score: {final_score:.3f} - {'✅ MATCH' if is_match else '❌ NO MATCH'}")
-
-        return is_match, final_score, results
-
-    def validate_quick(self, original_patch, selected_patch):
-        """
-        Quick validation using only essential methods
-        Faster but slightly less accurate
-
-        Args:
-            original_patch: correct piece
-            selected_patch: selected piece
-
-        Returns:
-            tuple: (is_match, score)
-        """
-        # Preprocess
-        img1, img2 = self.preprocess_images(original_patch, selected_patch)
-
-        # Only use features and color (fastest methods)
-        feat_match, feat_score = self.feature_extractor.validate_match(
-            img1, img2)
-        color_match, color_score, _ = self.color_analyzer.validate_color_match(
-            img1, img2)
-
-        # Weighted average
-        final_score = feat_score * 0.6 + color_score * 0.4
-        is_match = final_score >= 0.75
-
-        return is_match, final_score
-
-    def validate_with_context(self, original_image, missing_position, selected_patch):
-        """
-        Advanced validation that considers the full image context
-
-        Args:
-            original_image: full original image
-            missing_position: (x, y, width, height) of missing piece
-            selected_patch: the piece selected by user
-
-        Returns:
-            tuple: (is_match, score, details)
-        """
-        x, y, w, h = missing_position
-
-        # Extract the correct patch from original
-        original_patch = self.image_processor.crop_image(
-            original_image, x, y, w, h)
-
-        # Standard comprehensive validation
-        is_match, score, results = self.validate_comprehensive(
-            original_patch, selected_patch)
-
-        # Additional context-based checks
-        try:
-            # Analyze if the patch fits semantically with surrounding area
-            context_region = self._extract_context_region(
-                original_image, x, y, w, h)
-
-            context_match, context_score, context_details = \
-                self.semantic_analyzer.validate_contextual_match(
-                    context_region, selected_patch
-                )
-
-            # Adjust final score with context
-            adjusted_score = score * 0.85 + context_score * 0.15
-
-            results['context'] = {
-                'score': context_score,
-                'is_match': context_match,
-                'details': context_details
-            }
-
-            return adjusted_score >= 0.75, adjusted_score, results
-
-        except Exception as e:
-            if self.verbose:
-                print(f"⚠️ Context analysis failed: {e}")
-            return is_match, score, results
-
-    def _extract_context_region(self, image, x, y, w, h, margin=20):
-        """
-        Extract region around the missing piece for context analysis
-
-        Args:
-            image: full image
-            x, y, w, h: position and size of missing piece
-            margin: pixels to include around the piece
-
-        Returns:
-            context region image
-        """
-        img_h, img_w = image.shape[:2]
-
-        # Calculate context bounds
-        ctx_x = max(0, x - margin)
-        ctx_y = max(0, y - margin)
-        ctx_w = min(img_w - ctx_x, w + 2 * margin)
-        ctx_h = min(img_h - ctx_y, h + 2 * margin)
-
-        context = self.image_processor.crop_image(
-            image, ctx_x, ctx_y, ctx_w, ctx_h)
-
-        return context
-
-    def batch_validate(self, original_patch, candidate_patches):
-        """
-        Validate multiple candidate patches at once
-        Returns them ranked by match score
-
-        Args:
-            original_patch: correct piece
-            candidate_patches: list of candidate pieces
-
-        Returns:
-            list of tuples: [(patch_index, is_match, score), ...]
-            sorted by score (highest first)
-        """
-        results = []
-
-        for idx, candidate in enumerate(candidate_patches):
-            is_match, score, _ = self.validate_comprehensive(
-                original_patch, candidate)
-            results.append((idx, is_match, score))
-
-        # Sort by score (descending)
-        results.sort(key=lambda x: x[2], reverse=True)
-
-        return results
-
-    def get_confidence_explanation(self, validation_results):
-        """
-        Generate human-readable explanation of validation results
-
-        Args:
-            validation_results: results dict from validate_comprehensive
-
-        Returns:
-            str: explanation text
-        """
-        explanations = []
-
-        for method, result in validation_results.items():
-            score = result['score']
-
-            if score >= 0.85:
-                level = "Excellent"
-            elif score >= 0.70:
-                level = "Good"
-            elif score >= 0.50:
-                level = "Moderate"
-            else:
-                level = "Poor"
-
-            explanations.append(
-                f"{method.capitalize()}: {level} match ({score:.2%})")
-
-        return "\n".join(explanations)
-
-    def visualize_validation(self, original_patch, selected_patch, results):
-        """
-        Create visualization showing the comparison
-
-        Args:
-            original_patch: correct piece
-            selected_patch: selected piece
-            results: validation results
-
-        Returns:
-            visualization image
-        """
-        # Resize images to same size for display
-        display_size = (200, 200)
-        img1_display = cv2.resize(original_patch, display_size)
-        img2_display = cv2.resize(selected_patch, display_size)
-
-        # Create canvas
-        canvas_height = display_size[1]
-        canvas_width = display_size[0] * 2 + 100  # space for text
-        canvas = np.ones((canvas_height + 150, canvas_width, 3),
-                         dtype=np.uint8) * 255
-
-        # Place images
-        canvas[0:display_size[1], 0:display_size[0]] = img1_display
-        canvas[0:display_size[1], display_size[0] +
-               100:display_size[0]*2+100] = img2_display
-
-        # Add labels
-        cv2.putText(canvas, "Original", (50, display_size[1] + 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-        cv2.putText(canvas, "Selected", (display_size[0] + 130, display_size[1] + 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-
-        # Add scores
-        y_offset = display_size[1] + 70
-        for method, result in results.items():
-            score = result['score']
-            text = f"{method}: {score:.2%}"
-            color = (0, 200, 0) if score >= 0.75 else (0, 0, 200)
-            cv2.putText(canvas, text, (10, y_offset),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-            y_offset += 25
-
-        return canvas
-
-
-class FastCVValidator:
-    """
-    Lightweight validator for real-time performance
-    Uses only the fastest CV techniques
+    מערכת וולידציה מקיפה המשלבת ראייה ממוחשבת ולמידה עמוקה
     """
 
     def __init__(self):
-        """Initialize fast validator"""
-        print("⚡ Initializing Fast CV Validator...")
-        self.feature_extractor = FeatureExtractor('resnet50')
-        self.color_analyzer = ColorAnalyzer()
-        self.image_processor = ImageProcessor()
-        print("✅ Fast CV Validator ready!")
+        """אתחול כל האלגוריתמים"""
+        print("🚀 Initializing CV Validator...")
 
-    def validate(self, original_patch, selected_patch, threshold=0.75):
+        # אלגוריתמי למידה עמוקה (PyTorch)
+        try:
+            self.feature_extractor = FeatureExtractor('resnet50')
+            self.has_deep_learning = True
+            print("✅ Deep Learning (PyTorch) - Loaded")
+        except Exception as e:
+            print(f"⚠️ Deep Learning not available: {e}")
+            self.feature_extractor = None
+            self.has_deep_learning = False
+
+        # בדיקת גבולות (מרכזי!)
+        self.boundary_matcher = BoundaryMatcher(boundary_width=5)
+
+        # אלגוריתמי Computer Vision קלאסיים
+        self.color_analyzer = ColorAnalyzer()
+        self.texture_analyzer = TextureAnalyzer()
+        self.edge_analyzer = EdgeAnalyzer()
+
+        self.semantic_analyzer = None
+        self.has_semantic = False
+
+        self.image_processor = ImageProcessor()
+
+        print("✅ CV Validator initialized successfully!")
+
+    def validate(self, puzzle_image, selected_piece, missing_position, threshold=0.75):
         """
-        Fast validation using only features and color
+        וולידציה מהירה (בדיקת גבולות בלבד)
 
         Args:
-            original_patch: correct piece
-            selected_patch: selected piece
-            threshold: match threshold
+            puzzle_image: התמונה עם הריבוע השחור
+            selected_piece: החתיכה שהמשתמש בחר
+            missing_position: dict עם x, y, width, height
+            threshold: סף דמיון
 
         Returns:
-            tuple: (is_match, score)
+            tuple: (is_match, confidence)
         """
-        # Preprocess
-        img1 = self.image_processor.normalize_image(original_patch)
-        img2 = self.image_processor.normalize_image(selected_patch)
+        try:
+            is_match, confidence, _ = self.boundary_matcher.validate_piece_placement(
+                puzzle_image, selected_piece, missing_position
+            )
 
-        # Resize to same size
-        h, w = img1.shape[:2]
-        img2 = cv2.resize(img2, (w, h))
+            return is_match, confidence
 
-        # Feature validation (60% weight)
-        _, feat_score = self.feature_extractor.validate_match(img1, img2)
+        except Exception as e:
+            print(f"❌ Error in fast validation: {e}")
+            return False, 0.0
 
-        # Color validation (40% weight)
-        _, color_score, _ = self.color_analyzer.validate_color_match(
-            img1, img2)
+    def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.65):
+        """
+        Comprehensive validation: boundary matching + PyTorch DL + color + texture + edges.
 
-        # Combined score
-        final_score = feat_score * 0.60 + color_score * 0.40
-        is_match = final_score >= threshold
+        All five components compare puzzle_image boundary strips (the strips
+        adjacent to the hole) against the matching edge strips of the selected
+        piece.  The completed_image is never used, which prevents the circular
+        comparison where the piece would be compared to itself.
 
-        return is_match, final_score
+        Args:
+            puzzle_image: image with the black square
+            selected_piece: the piece the user selected
+            missing_position: dict with x, y, width, height
+            threshold: similarity threshold (0-1)
+
+        Returns:
+            tuple: (is_match, confidence, validation_details)
+        """
+        try:
+            print("🔍 Running comprehensive validation...")
+
+            validation_results = {}
+            weights = {}
+
+            x = missing_position['x']
+            y = missing_position['y']
+            w = missing_position['width']
+            h = missing_position['height']
+            piece_resized = cv2.resize(selected_piece, (w, h))
+
+            # Build matched strip pairs once and reuse across all components.
+            # Each pair: (puzzle_strip from puzzle_image, piece_edge_strip).
+            # puzzle_strip is the pixels just outside the hole on that side.
+            # piece_edge_strip is the corresponding edge pixels of the piece.
+            border = max(5, min(20, h // 4, w // 4))
+            strip_pairs = []
+
+            if y >= border:
+                strip_pairs.append((
+                    puzzle_image[y - border:y, x:x + w],
+                    piece_resized[0:border, :]
+                ))
+            if y + h + border <= puzzle_image.shape[0]:
+                strip_pairs.append((
+                    puzzle_image[y + h:y + h + border, x:x + w],
+                    piece_resized[h - border:h, :]
+                ))
+            if x >= border:
+                strip_pairs.append((
+                    puzzle_image[y:y + h, x - border:x],
+                    piece_resized[:, 0:border]
+                ))
+            if x + w + border <= puzzle_image.shape[1]:
+                strip_pairs.append((
+                    puzzle_image[y:y + h, x + w:x + w + border],
+                    piece_resized[:, w - border:w]
+                ))
+
+            # 1. Boundary matching (HSV histogram + avg color per edge) - weight 0.35
+            print("   📐 Checking boundary matching...")
+            _, boundary_conf, boundary_details = self.boundary_matcher.validate_piece_placement(
+                puzzle_image, selected_piece, missing_position
+            )
+            validation_results['boundary'] = {'score': boundary_conf, 'details': boundary_details}
+            weights['boundary'] = 0.35
+            print(f"      Boundary score: {boundary_conf:.3f}")
+
+            # 2. PyTorch ResNet50 on boundary strips - weight 0.35
+            # Compare deep features of each puzzle strip to the matching piece edge strip.
+            if self.has_deep_learning and self.feature_extractor:
+                print("   🤖 Running deep learning boundary analysis...")
+                try:
+                    dl_scores = []
+                    for pz, pc in strip_pairs:
+                        if pz.size > 0 and pc.size > 0:
+                            dl_scores.append(
+                                self.feature_extractor.compare_features(
+                                    self.feature_extractor.extract_features(pz),
+                                    self.feature_extractor.extract_features(pc),
+                                    method='cosine'
+                                )
+                            )
+                    if dl_scores:
+                        dl_sim = float(np.mean(dl_scores))
+                        validation_results['features'] = {'score': dl_sim, 'method': 'resnet50_boundary_strips'}
+                        weights['features'] = 0.35
+                        print(f"      Deep Learning score: {dl_sim:.3f}")
+                    else:
+                        validation_results['features'] = {'score': 0.0}
+                        weights['features'] = 0.0
+                except Exception as e:
+                    print(f"      ⚠️ Deep learning error: {e}")
+                    validation_results['features'] = {'score': 0.0}
+                    weights['features'] = 0.0
+            else:
+                validation_results['features'] = {'score': 0.0}
+                weights['features'] = 0.0
+
+            # 3. Color comparison on boundary strips - weight 0.15
+            # Compare the average BGR color of each puzzle strip to the matching piece strip.
+            print("   🎨 Analyzing colors...")
+            try:
+                color_scores = []
+                for pz, pc in strip_pairs:
+                    if pz.size > 0 and pc.size > 0:
+                        color_scores.append(
+                            self.boundary_matcher.compare_boundary_colors(pz, pc)
+                        )
+                color_sim = float(np.mean(color_scores)) if color_scores else 0.0
+                validation_results['color'] = {'score': color_sim, 'method': 'boundary_color'}
+                weights['color'] = 0.15
+                print(f"      Color score: {color_sim:.3f}")
+            except Exception as e:
+                print(f"      ⚠️ Color analysis error: {e}")
+                validation_results['color'] = {'score': 0.0}
+                weights['color'] = 0.0
+
+            # 4. Texture comparison (LBP) on boundary strips - weight 0.10
+            # Compare LBP histograms of each puzzle strip to the matching piece strip.
+            print("   🔲 Analyzing textures...")
+            try:
+                texture_scores = []
+                for pz, pc in strip_pairs:
+                    if pz.size > 0 and pc.size > 0:
+                        texture_scores.append(
+                            self.texture_analyzer.compare_lbp(
+                                self.texture_analyzer.calculate_lbp(pz),
+                                self.texture_analyzer.calculate_lbp(pc)
+                            )
+                        )
+                texture_sim = float(np.mean(texture_scores)) if texture_scores else 0.0
+                validation_results['texture'] = {'score': texture_sim, 'method': 'lbp_boundary'}
+                weights['texture'] = 0.10
+                print(f"      Texture score: {texture_sim:.3f}")
+            except Exception as e:
+                print(f"      ⚠️ Texture analysis error: {e}")
+                validation_results['texture'] = {'score': 0.0}
+                weights['texture'] = 0.0
+
+            # 5. Edge density comparison (Canny) on boundary strips - weight 0.05
+            # Compare the edge density of each puzzle strip to the matching piece strip.
+            print("   📏 Detecting edges...")
+            try:
+                edge_scores = []
+                for pz, pc in strip_pairs:
+                    if pz.size > 0 and pc.size > 0:
+                        e_pz = self.edge_analyzer.detect_edges_canny(pz)
+                        e_pc = self.edge_analyzer.detect_edges_canny(pc)
+                        d_pz = np.count_nonzero(e_pz) / e_pz.size if e_pz.size > 0 else 0
+                        d_pc = np.count_nonzero(e_pc) / e_pc.size if e_pc.size > 0 else 0
+                        edge_scores.append(1 - abs(d_pz - d_pc))
+                edge_sim = float(np.mean(edge_scores)) if edge_scores else 0.0
+                validation_results['edges'] = {'score': edge_sim, 'method': 'canny_boundary'}
+                weights['edges'] = 0.05
+                print(f"      Edge score: {edge_sim:.3f}")
+            except Exception as e:
+                print(f"      ⚠️ Edge detection error: {e}")
+                validation_results['edges'] = {'score': 0.0}
+                weights['edges'] = 0.0
+
+            # Compute normalized weighted confidence
+            total_weight = sum(weights.values())
+            if total_weight > 0:
+                normalized_weights = {k: v / total_weight for k, v in weights.items()}
+                confidence = sum(
+                    validation_results[key]['score'] * normalized_weights[key]
+                    for key in validation_results.keys()
+                    if key in normalized_weights
+                )
+            else:
+                confidence = 0.0
+
+            is_match = confidence >= threshold
+
+            print(f"   ✅ Overall confidence: {confidence:.3f} ({'MATCH' if is_match else 'NO MATCH'})")
+
+            return is_match, confidence, validation_results
+
+        except Exception as e:
+            print(f"❌ Error in comprehensive validation: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, 0.0, {}
+
+    def _place_piece_in_image(self, puzzle_image, piece, missing_position):
+        """
+        מציב חתיכה בתמונה (עבור בדיקת למידה עמוקה)
+
+        Args:
+            puzzle_image: התמונה עם הריבוע השחור
+            piece: החתיכה
+            missing_position: המיקום
+
+        Returns:
+            numpy array: תמונה עם החתיכה מוצבת
+        """
+        result = puzzle_image.copy()
+
+        x = missing_position['x']
+        y = missing_position['y']
+        w = missing_position['width']
+        h = missing_position['height']
+
+        # שינוי גודל החתיכה
+        piece_resized = cv2.resize(piece, (w, h))
+
+        # הצבה
+        result[y:y+h, x:x+w] = piece_resized
+
+        return result
+
+    def _extract_context_region(self, puzzle_image, missing_position, margin=20):
+        """
+        מחלץ את האזור מסביב לריבוע השחור
+
+        Args:
+            puzzle_image: התמונה
+            missing_position: המיקום
+            margin: שוליים לחילוץ
+
+        Returns:
+            numpy array: אזור ההקשר
+        """
+        x = missing_position['x']
+        y = missing_position['y']
+        w = missing_position['width']
+        h = missing_position['height']
+
+        # חישוב גבולות עם שוליים
+        x1 = max(0, x - margin)
+        y1 = max(0, y - margin)
+        x2 = min(puzzle_image.shape[1], x + w + margin)
+        y2 = min(puzzle_image.shape[0], y + h + margin)
+
+        context = puzzle_image[y1:y2, x1:x2]
+
+        return context
 
 
 if __name__ == "__main__":
-    # Testing
-    print("🧪 Testing CV Validator Module...")
+    print("🧪 Testing CV Validator...")
 
-    # Create test images
-    test_original = np.random.randint(100, 200, (150, 150, 3), dtype=np.uint8)
-    test_correct = test_original.copy()
-    test_wrong = np.random.randint(0, 100, (150, 150, 3), dtype=np.uint8)
+    # Create test data
+    puzzle_image = np.random.randint(0, 255, (400, 600, 3), dtype=np.uint8)
+    selected_piece = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
 
-    print("\n--- Testing Comprehensive Validator ---")
-    validator = CVValidator(use_ensemble=False, verbose=True)
+    missing_position = {
+        'x': 200,
+        'y': 150,
+        'width': 100,
+        'height': 100
+    }
 
-    # Test with correct piece
-    print("\n🎯 Testing with CORRECT piece:")
-    is_match, score, results = validator.validate_comprehensive(
-        test_original, test_correct)
-    print(
-        f"Result: {'✅ MATCH' if is_match else '❌ NO MATCH'} (score: {score:.3f})")
+    validator = CVValidator()
 
-    # Test with wrong piece
-    print("\n🎯 Testing with WRONG piece:")
-    is_match, score, results = validator.validate_comprehensive(
-        test_original, test_wrong)
-    print(
-        f"Result: {'✅ MATCH' if is_match else '❌ NO MATCH'} (score: {score:.3f})")
+    # Test fast validation
+    print("\n--- Fast Validation ---")
+    is_match, confidence = validator.validate(
+        puzzle_image, selected_piece, missing_position)
+    print(f"Result: {is_match}, Confidence: {confidence:.3f}")
 
-    # Test quick validation
-    print("\n--- Testing Quick Validator ---")
-    is_match_quick, score_quick = validator.validate_quick(
-        test_original, test_correct)
-    print(f"Quick validation: {is_match_quick} (score: {score_quick:.3f})")
+    # Test comprehensive validation
+    print("\n--- Comprehensive Validation ---")
+    is_match, confidence, details = validator.validate_comprehensive(
+        puzzle_image, selected_piece, missing_position
+    )
+    print(f"Result: {is_match}, Confidence: {confidence:.3f}")
 
-    # Test fast validator
-    print("\n--- Testing Fast Validator ---")
-    fast_validator = FastCVValidator()
-    is_match_fast, score_fast = fast_validator.validate(
-        test_original, test_correct)
-    print(f"Fast validation: {is_match_fast} (score: {score_fast:.3f})")
-
-    # Test batch validation
-    print("\n--- Testing Batch Validation ---")
-    candidates = [test_correct, test_wrong, test_original.copy()]
-    batch_results = validator.batch_validate(test_original, candidates)
-    print("Batch results (ranked):")
-    for idx, is_match, score in batch_results:
-        print(f"  Candidate {idx}: {score:.3f} - {'✅' if is_match else '❌'}")
-
-    print("\n✅ CV Validator Module - All tests passed!")
+    print("\n✅ CV Validator - All tests passed!")

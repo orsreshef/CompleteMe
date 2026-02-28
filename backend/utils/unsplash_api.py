@@ -36,6 +36,14 @@ class UnsplashAPI:
         self.base_url = Config.UNSPLASH_API_URL
         self.session = requests.Session()
 
+    # Safe, diverse topics used when no query is specified
+    _DEFAULT_QUERIES = [
+        'nature', 'animals', 'landscape', 'city', 'architecture',
+        'flowers', 'food', 'travel', 'mountains', 'ocean',
+        'forest', 'sky', 'cars', 'trains', 'birds',
+        'cats', 'dogs', 'sports', 'fruits', 'winter'
+    ]
+
     def get_random_image(self, query=None, orientation='landscape', size='regular'):
         """
         Get a random image from Unsplash
@@ -59,13 +67,15 @@ class UnsplashAPI:
                 'Authorization': f'Client-ID {self.access_key}'
             }
 
+            # If no query given, pick a random safe topic for variety
+            active_query = query if query else random.choice(self._DEFAULT_QUERIES)
+
             params = {
                 'orientation': orientation,
-                'count': 1
+                'count': 1,
+                'query': active_query,
+                'content_filter': 'high'  # child-safe content only
             }
-
-            if query:
-                params['query'] = query
 
             # Make request
             response = self.session.get(
@@ -103,8 +113,9 @@ class UnsplashAPI:
                     return self._get_random_image_fallback()
 
             elif response.status_code == 403:
-                print("❌ Unsplash API rate limit reached. Using fallback.")
-                self.use_fallback = True
+                # Rate limit hit for this request — use fallback but don't
+                # lock the session permanently so future requests can retry
+                print("⚠️ Unsplash API rate limit reached for this request. Using fallback.")
                 return self._get_random_image_fallback()
 
             else:
