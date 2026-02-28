@@ -139,36 +139,40 @@ class CVValidator:
             weights['boundary'] = 0.35
             print(f"      Boundary score: {boundary_conf:.3f}")
 
-            # 2. PyTorch ResNet50 on boundary strips - weight 0.35
-            # Compare deep features of each puzzle strip to the matching piece edge strip.
+            # 2. Semantic deep learning: context region vs full piece - weight 0.35
+            # Extract ResNet50 features from the surrounding puzzle context (the region
+            # around the hole) and compare them to the full candidate piece.
+            # This detects whether the piece semantically belongs here:
+            # e.g. an eye matches a face context, but a flower does not.
             if self.has_deep_learning and self.feature_extractor:
-                print("   🤖 Running deep learning boundary analysis...")
+                print("   🤖 Running semantic deep learning analysis...")
                 try:
-                    dl_scores = []
-                    for pz, pc in strip_pairs:
-                        if pz.size > 0 and pc.size > 0:
-                            dl_scores.append(
-                                self.feature_extractor.compare_features(
-                                    self.feature_extractor.extract_features(pz),
-                                    self.feature_extractor.extract_features(pc),
-                                    method='cosine'
-                                )
-                            )
-                    if dl_scores:
-                        dl_sim = float(np.mean(dl_scores))
-                        validation_results['features'] = {'score': dl_sim, 'method': 'resnet50_boundary_strips'}
-                        weights['features'] = 0.35
-                        print(f"      Deep Learning score: {dl_sim:.3f}")
+                    margin = max(30, min(100, h // 2, w // 2))
+                    context_region = self._extract_context_region(
+                        puzzle_image, missing_position, margin=margin
+                    )
+                    if context_region.size > 0 and piece_resized.size > 0:
+                        ctx_features = self.feature_extractor.extract_features(context_region)
+                        piece_features = self.feature_extractor.extract_features(piece_resized)
+                        semantic_sim = self.feature_extractor.compare_features(
+                            ctx_features, piece_features, method='cosine'
+                        )
+                        validation_results['semantic'] = {
+                            'score': float(semantic_sim),
+                            'method': 'resnet50_semantic_context'
+                        }
+                        weights['semantic'] = 0.35
+                        print(f"      Semantic score: {semantic_sim:.3f}")
                     else:
-                        validation_results['features'] = {'score': 0.0}
-                        weights['features'] = 0.0
+                        validation_results['semantic'] = {'score': 0.0}
+                        weights['semantic'] = 0.0
                 except Exception as e:
-                    print(f"      ⚠️ Deep learning error: {e}")
-                    validation_results['features'] = {'score': 0.0}
-                    weights['features'] = 0.0
+                    print(f"      ⚠️ Semantic deep learning error: {e}")
+                    validation_results['semantic'] = {'score': 0.0}
+                    weights['semantic'] = 0.0
             else:
-                validation_results['features'] = {'score': 0.0}
-                weights['features'] = 0.0
+                validation_results['semantic'] = {'score': 0.0}
+                weights['semantic'] = 0.0
 
             # 3. Color comparison on boundary strips - weight 0.15
             # Compare the average BGR color of each puzzle strip to the matching piece strip.

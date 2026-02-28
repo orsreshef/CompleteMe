@@ -413,7 +413,7 @@ def validate_answer():
                 'confidence': float(confidence),
                 'validation_details': {
                     'boundary_score': float(details.get('boundary', {}).get('score', 0.0)),
-                    'features_score': float(details.get('features', {}).get('score', 0.0)),
+                    'semantic_score': float(details.get('semantic', {}).get('score', 0.0)),
                     'color_score': float(details.get('color', {}).get('score', 0.0)),
                     'texture_score': float(details.get('texture', {}).get('score', 0.0)),
                     'edge_score': float(details.get('edges', {}).get('score', 0.0))
