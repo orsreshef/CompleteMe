@@ -4,12 +4,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 import WelcomeScreen from './components/WelcomeScreen';
+import ImageSelector from './components/ImageSelector';
 import GameBoard from './components/GameBoard';
 import LoadingScreen from './components/LoadingScreen';
 import api from './services/api';
 
 function App() {
-  const [gameState, setGameState] = useState('welcome'); // 'welcome', 'loading', 'playing', 'finished'
+  const [gameState, setGameState] = useState('welcome'); // 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
   const [difficulty, setDifficulty] = useState(1);
   const [gameData, setGameData] = useState(null);
   const [config, setConfig] = useState(null);
@@ -30,16 +31,23 @@ function App() {
     }
   };
 
-  const startGame = async (selectedDifficulty) => {
+  // Called from WelcomeScreen when difficulty card is clicked
+  const handleSelectDifficulty = (selectedDifficulty) => {
     setDifficulty(selectedDifficulty);
+    setGameState('imageSelect');
+  };
+
+  // Called from ImageSelector with image params: { query } or {}
+  const startGame = async (imageParams = {}) => {
     setGameState('loading');
 
     try {
-      console.log(`🎮 Starting game with difficulty ${selectedDifficulty}...`);
-      
+      console.log(`🎮 Starting game with difficulty ${difficulty}...`, imageParams);
+
       const data = await api.createPuzzle({
-        difficulty: selectedDifficulty,
-        use_random_image: true
+        difficulty,
+        use_random_image: true,
+        ...imageParams,
       });
 
       console.log('✅ Puzzle created:', data);
@@ -55,7 +63,7 @@ function App() {
     } catch (error) {
       console.error('❌ Failed to create puzzle:', error);
       toast.error('Failed to create puzzle. Please try again.');
-      setGameState('welcome');
+      setGameState('imageSelect');
     }
   };
 
@@ -97,8 +105,17 @@ function App() {
 
       {gameState === 'welcome' && (
         <WelcomeScreen
-          onStartGame={startGame}
+          onStartGame={handleSelectDifficulty}
           difficultyLevels={config?.difficulty_levels}
+        />
+      )}
+
+      {gameState === 'imageSelect' && (
+        <ImageSelector
+          difficulty={difficulty}
+          difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
+          onStartGame={startGame}
+          onBack={() => setGameState('welcome')}
         />
       )}
 
