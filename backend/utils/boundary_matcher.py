@@ -212,8 +212,8 @@ class BoundaryMatcher:
                         puzzle_bound, piece_bound)
 
                     scores[direction] = 0.7 * hist_score + 0.3 * color_score
-                else:
-                    scores[direction] = 0.0
+                # else: zone is at the image edge — skip this direction
+                # (don't penalize with 0.0; just average the sides that exist)
 
             # ציון כולל - ממוצע של כל הגבולות
             if scores:
