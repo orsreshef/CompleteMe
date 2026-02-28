@@ -43,7 +43,7 @@ const MethodCard = ({ mode, selectedMode, onSelect, emoji, title, description, c
   </motion.button>
 );
 
-const ImageSelector = ({ difficulty, difficultyName, onStartGame, onBack }) => {
+const ImageSelector = ({ difficulty, difficultyName, regionCount, onStartGame, onBack }) => {
   const [selectedMode, setSelectedMode] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -151,7 +151,9 @@ const ImageSelector = ({ difficulty, difficultyName, onStartGame, onBack }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <span className="difficulty-badge">{difficultyName} Level</span>
+          <span className="difficulty-badge">
+            {difficultyName} Level &middot; {regionCount} missing {regionCount === 1 ? 'piece' : 'pieces'}
+          </span>
         </motion.div>
 
         {/* Content Area */}

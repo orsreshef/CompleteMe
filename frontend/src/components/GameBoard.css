@@ -145,6 +145,205 @@
   animation: spin 0.8s linear infinite;
 }
 
+/* ── Puzzle instruction ─────────────────────────────────────────────── */
+.puzzle-instruction {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.95rem;
+  margin-bottom: var(--spacing-md);
+}
+
+/* ── Puzzle wrapper ──────────────────────────────────────────────────── */
+.puzzle-wrapper-container {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-xl);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.puzzle-wrapper {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+}
+
+.puzzle-img {
+  display: block;
+  max-width: 100%;
+  max-height: 52vh;
+  width: auto;
+  height: auto;
+  border-radius: var(--border-radius);
+  user-select: none;
+}
+
+/* ── Drop zones ──────────────────────────────────────────────────────── */
+.drop-zone {
+  position: absolute;
+  border: 3px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+
+.drop-zone.zone-empty {
+  background: rgba(0, 0, 0, 0.65);
+  cursor: copy;
+}
+
+.drop-zone.zone-hovered {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.drop-zone.zone-filled {
+  border-color: #10b981;
+  border-style: solid;
+  cursor: pointer;
+}
+
+.zone-empty-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-family: 'Fredoka', sans-serif;
+  pointer-events: none;
+}
+
+.placed-piece-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.zone-remove-hint {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  background: rgba(239, 68, 68, 0.85);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.drop-zone.zone-filled:hover .zone-remove-hint {
+  opacity: 1;
+}
+
+/* ── Piece pool ──────────────────────────────────────────────────────── */
+.piece-pool {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.pool-title {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+.pool-grid {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pool-piece {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 3px solid #e2e8f0;
+  cursor: grab;
+  transition: border-color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+
+.pool-piece:hover:not(.pool-piece-placed) {
+  border-color: #6366f1;
+  transform: scale(1.06) translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.pool-piece img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pool-piece-placed {
+  opacity: 0.45;
+  cursor: default;
+  border-color: #10b981;
+}
+
+.pool-piece-dragging {
+  opacity: 0.55;
+  transform: scale(1.08);
+  cursor: grabbing;
+}
+
+.piece-number {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.piece-placed-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .game-header {

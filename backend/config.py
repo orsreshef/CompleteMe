@@ -50,7 +50,7 @@ class Config:
     # Image processing settings
     MAX_IMAGE_DIMENSION = 1200  # Max width/height for uploaded images
     PUZZLE_PIECE_SIZE = 150  # Default size for puzzle pieces in pixels
-    DECOY_COUNT = 4  # Number of decoy pieces to generate
+    DECOY_COUNT = 5  # Default decoys; actual count = 6 - num_regions (pool always has 6 pieces)
 
     # CORS settings
     CORS_ORIGINS = os.getenv(

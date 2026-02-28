@@ -90,6 +90,54 @@
   color: var(--text-primary);
 }
 
+/* Region Results (multi-region mode) */
+.region-results {
+  margin-bottom: var(--spacing-lg);
+  text-align: left;
+}
+
+.region-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.region-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.region-result-item.match {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.region-result-item.no-match {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.region-result-icon {
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.region-result-label {
+  flex: 1;
+}
+
+.region-result-pct {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
 /* Validation Details */
 .validation-details {
   background: #f8fafc;

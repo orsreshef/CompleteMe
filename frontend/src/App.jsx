@@ -12,6 +12,7 @@ import api from './services/api';
 function App() {
   const [gameState, setGameState] = useState('welcome'); // 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
   const [difficulty, setDifficulty] = useState(1);
+  const [regionCount, setRegionCount] = useState(1);
   const [gameData, setGameData] = useState(null);
   const [config, setConfig] = useState(null);
 
@@ -31,9 +32,10 @@ function App() {
     }
   };
 
-  // Called from WelcomeScreen when difficulty card is clicked
-  const handleSelectDifficulty = (selectedDifficulty) => {
+  // Called from WelcomeScreen after both difficulty and region count are chosen
+  const handleSelectDifficulty = (selectedDifficulty, selectedRegionCount) => {
     setDifficulty(selectedDifficulty);
+    setRegionCount(selectedRegionCount);
     setGameState('imageSelect');
   };
 
@@ -46,6 +48,7 @@ function App() {
 
       const data = await api.createPuzzle({
         difficulty,
+        num_regions: regionCount,
         use_random_image: true,
         ...imageParams,
       });
@@ -114,6 +117,7 @@ function App() {
         <ImageSelector
           difficulty={difficulty}
           difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
+          regionCount={regionCount}
           onStartGame={startGame}
           onBack={() => setGameState('welcome')}
         />
