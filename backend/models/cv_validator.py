@@ -34,7 +34,7 @@ class CVValidator:
             self.has_deep_learning = False
 
         # בדיקת גבולות (מרכזי!)
-        self.boundary_matcher = BoundaryMatcher(boundary_width=5)
+        self.boundary_matcher = BoundaryMatcher(boundary_width=10)
 
         # אלגוריתמי Computer Vision קלאסיים
         self.color_analyzer = ColorAnalyzer()
@@ -72,7 +72,7 @@ class CVValidator:
             print(f"❌ Error in fast validation: {e}")
             return False, 0.0
 
-    def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.65):
+    def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.58):
         """
         Comprehensive validation: boundary matching + PyTorch DL + color + texture + edges.
 
@@ -147,7 +147,9 @@ class CVValidator:
             if self.has_deep_learning and self.feature_extractor:
                 print("   🤖 Running semantic deep learning analysis...")
                 try:
-                    margin = max(30, min(100, h // 2, w // 2))
+                    # Use a large margin so the black hole is a small fraction
+                    # of the context region and doesn't dominate ResNet50 features.
+                    margin = max(50, min(150, h, w))
                     context_region = self._extract_context_region(
                         puzzle_image, missing_position, margin=margin
                     )
