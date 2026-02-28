@@ -404,8 +404,11 @@ def validate_answer():
 
             # ── Relative ranking ──────────────────────────────────────────
             # Score every candidate piece against this zone using boundary
-            # matching (fast, no GPU).  The user is correct if their piece
-            # ranks #1 — no absolute threshold needed.
+            # matching (fast, no GPU).  User is correct if they rank #1.
+            # When scores are within TIE_MARGIN (uniform-colour regions like
+            # white walls, clear sky), the comprehensive score breaks the tie.
+            TIE_MARGIN = 0.02
+
             print(f"   Zone {zone_index}: ranking {len(all_options)} options by boundary score...")
             option_boundary_scores = []
             for opt in all_options:
@@ -415,16 +418,35 @@ def validate_answer():
                 option_boundary_scores.append(opt_conf)
 
             user_boundary_score = option_boundary_scores[option_index]
+            best_boundary_score = max(option_boundary_scores)
             rank = sum(1 for s in option_boundary_scores if s > user_boundary_score) + 1
-            is_match = (rank == 1)
 
             print(f"      Scores: {[f'{s:.3f}' for s in option_boundary_scores]}")
             print(f"      User option {option_index}: {user_boundary_score:.3f}  rank {rank}/{len(all_options)}")
 
-            # Run comprehensive validation for the confidence display only
+            # Run comprehensive validation for the confidence display (and tie-breaking)
             _, confidence, details = validator.validate_comprehensive(
                 puzzle_image, placed_piece, missing_position
             )
+
+            if rank == 1:
+                is_match = True
+            elif best_boundary_score - user_boundary_score <= TIE_MARGIN:
+                # Tie zone — run comprehensive on each competing option and compare
+                competing_indices = [
+                    i for i, s in enumerate(option_boundary_scores)
+                    if s > user_boundary_score
+                ]
+                best_competing_conf = 0.0
+                for comp_idx in competing_indices:
+                    _, comp_conf, _ = validator.validate_comprehensive(
+                        puzzle_image, all_options[comp_idx], missing_position
+                    )
+                    best_competing_conf = max(best_competing_conf, comp_conf)
+                is_match = (confidence >= best_competing_conf)
+                print(f"      TIE resolved: user {confidence:.3f} vs competitor {best_competing_conf:.3f} → {'CORRECT' if is_match else 'WRONG'}")
+            else:
+                is_match = False
 
             print(f"   Zone {zone_index}: {'✅ CORRECT' if is_match else '❌ WRONG'} (rank {rank}, conf {confidence:.3f})")
 
