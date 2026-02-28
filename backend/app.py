@@ -288,13 +288,14 @@ def create_puzzle():
         import uuid
         game_id = str(uuid.uuid4())
 
-        # Store game data
+        # Store game data (options stored for relative ranking at validation time)
         active_games[game_id] = {
             'puzzle_image': puzzle_data['puzzle_image'],
             'missing_positions': puzzle_data['missing_positions'],
             'num_regions': puzzle_data['num_regions'],
             'difficulty': difficulty,
-            'attempts': 0
+            'attempts': 0,
+            'options': puzzle_data['options']
         }
 
         # Convert images to base64 for response
@@ -387,25 +388,45 @@ def validate_answer():
         all_correct = True
         total_confidence = 0.0
 
+        all_options = game_data['options']
+
         for placement in placements:
             zone_index = int(placement.get('zone_index', 0))
-            placed_piece_b64 = placement.get('piece', '')
+            option_index = int(placement.get('option_index', 0))
 
             if zone_index >= len(missing_positions):
                 return jsonify({'error': f'Invalid zone_index: {zone_index}'}), 400
+            if option_index >= len(all_options):
+                return jsonify({'error': f'Invalid option_index: {option_index}'}), 400
 
-            placed_piece = base64_to_image(placed_piece_b64)
+            placed_piece = all_options[option_index]
             missing_position = missing_positions[zone_index]
 
-            print(f"   Zone {zone_index}: running CV + PyTorch validation...")
+            # ── Relative ranking ──────────────────────────────────────────
+            # Score every candidate piece against this zone using boundary
+            # matching (fast, no GPU).  The user is correct if their piece
+            # ranks #1 — no absolute threshold needed.
+            print(f"   Zone {zone_index}: ranking {len(all_options)} options by boundary score...")
+            option_boundary_scores = []
+            for opt in all_options:
+                _, opt_conf, _ = validator.boundary_matcher.validate_piece_placement(
+                    puzzle_image, opt, missing_position
+                )
+                option_boundary_scores.append(opt_conf)
 
-            is_match, confidence, details = validator.validate_comprehensive(
-                puzzle_image,
-                placed_piece,
-                missing_position
+            user_boundary_score = option_boundary_scores[option_index]
+            rank = sum(1 for s in option_boundary_scores if s > user_boundary_score) + 1
+            is_match = (rank == 1)
+
+            print(f"      Scores: {[f'{s:.3f}' for s in option_boundary_scores]}")
+            print(f"      User option {option_index}: {user_boundary_score:.3f}  rank {rank}/{len(all_options)}")
+
+            # Run comprehensive validation for the confidence display only
+            _, confidence, details = validator.validate_comprehensive(
+                puzzle_image, placed_piece, missing_position
             )
 
-            print(f"   Zone {zone_index}: {'✅ CORRECT' if is_match else '❌ WRONG'} ({confidence:.3f})")
+            print(f"   Zone {zone_index}: {'✅ CORRECT' if is_match else '❌ WRONG'} (rank {rank}, conf {confidence:.3f})")
 
             region_results.append({
                 'zone_index': zone_index,

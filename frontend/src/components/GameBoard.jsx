@@ -93,7 +93,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
     try {
       const placementsArray = Object.entries(placements).map(([zoneIndex, optionIndex]) => ({
         zone_index: parseInt(zoneIndex),
-        piece: options[optionIndex],
+        option_index: parseInt(optionIndex),
       }));
 
       const result = await api.validateAnswer(gameData.game_id, placementsArray);
