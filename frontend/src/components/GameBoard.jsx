@@ -223,7 +223,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
           <div className="puzzle-wrapper">
             <img
               className="puzzle-img"
-              src={`data:image/jpeg;base64,${puzzle_image}`}
+              src={puzzle_image}
               alt="Puzzle"
               draggable={false}
             />
@@ -245,7 +245,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
                     <>
                       <img
                         className="placed-piece-img"
-                        src={`data:image/jpeg;base64,${options[placements[zoneIndex]]}`}
+                        src={options[placements[zoneIndex]]}
                         alt={`Piece in zone ${zoneIndex + 1}`}
                         draggable={false}
                       />
@@ -281,7 +281,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
                   onDragEnd={handleDragEnd}
                 >
                   <img
-                    src={`data:image/jpeg;base64,${optionBase64}`}
+                    src={optionBase64}
                     alt={`Option ${idx + 1}`}
                     draggable={false}
                   />
