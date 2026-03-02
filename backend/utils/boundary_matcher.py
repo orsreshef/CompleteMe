@@ -1,6 +1,6 @@
 """
 Boundary Matching Validator
-בודק התאמה של חתיכה נבחרת לתמונה עם ריבוע שחור
+Checks whether a selected piece fits the puzzle image with a black square hole
 """
 
 import numpy as np
@@ -10,29 +10,29 @@ from scipy.spatial.distance import euclidean
 
 class BoundaryMatcher:
     """
-    מחלקה לבדיקת התאמת גבולות בין חתיכה נבחרת לתמונה המקורית
+    Class for checking boundary compatibility between a selected piece and the original image
     """
 
     def __init__(self, boundary_width=5):
         """
-        אתחול
+        Initialize
 
         Args:
-            boundary_width: רוחב הגבול לבדיקה (פיקסלים)
+            boundary_width: width of the boundary strip to check (pixels)
         """
         self.boundary_width = boundary_width
         print(f"✅ Boundary Matcher initialized (width={boundary_width}px)")
 
     def extract_boundaries(self, puzzle_image, missing_position):
         """
-        מחלץ את הגבולות של הריבוע השחור מהתמונה
+        Extracts the boundary strips around the black square hole from the image
 
         Args:
-            puzzle_image: התמונה עם הריבוע השחור
-            missing_position: dict עם x, y, width, height
+            puzzle_image: the image with the black square
+            missing_position: dict with x, y, width, height
 
         Returns:
-            dict: {'top', 'bottom', 'left', 'right'} - גבולות התמונה
+            dict: {'top', 'bottom', 'left', 'right'} - image boundary strips
         """
         x = missing_position['x']
         y = missing_position['y']
@@ -41,7 +41,7 @@ class BoundaryMatcher:
 
         boundaries = {}
 
-        # גבול עליון (מעל הריבוע השחור)
+        # Top boundary (above the black square)
         if y >= self.boundary_width:
             boundaries['top'] = puzzle_image[
                 y - self.boundary_width:y,
@@ -50,7 +50,7 @@ class BoundaryMatcher:
         else:
             boundaries['top'] = None
 
-        # גבול תחתון (מתחת לריבוע השחור)
+        # Bottom boundary (below the black square)
         if y + h + self.boundary_width <= puzzle_image.shape[0]:
             boundaries['bottom'] = puzzle_image[
                 y + h:y + h + self.boundary_width,
@@ -59,7 +59,7 @@ class BoundaryMatcher:
         else:
             boundaries['bottom'] = None
 
-        # גבול שמאלי (משמאל לריבוע השחור)
+        # Left boundary (left of the black square)
         if x >= self.boundary_width:
             boundaries['left'] = puzzle_image[
                 y:y + h,
@@ -68,7 +68,7 @@ class BoundaryMatcher:
         else:
             boundaries['left'] = None
 
-        # גבול ימני (מימין לריבוע השחור)
+        # Right boundary (right of the black square)
         if x + w + self.boundary_width <= puzzle_image.shape[1]:
             boundaries['right'] = puzzle_image[
                 y:y + h,
@@ -81,13 +81,13 @@ class BoundaryMatcher:
 
     def extract_piece_boundaries(self, piece):
         """
-        מחלץ את הגבולות של החתיכה הנבחרת
+        Extracts the edge strips from the selected piece
 
         Args:
-            piece: התמונה של החתיכה
+            piece: the piece image
 
         Returns:
-            dict: {'top', 'bottom', 'left', 'right'} - גבולות החתיכה
+            dict: {'top', 'bottom', 'left', 'right'} - piece edge strips
         """
         h, w = piece.shape[:2]
 
@@ -102,46 +102,46 @@ class BoundaryMatcher:
 
     def compare_boundary_colors(self, boundary1, boundary2):
         """
-        משווה צבעים בין שני גבולות
+        Compares colors between two boundary strips
 
         Args:
-            boundary1: גבול ראשון (numpy array)
-            boundary2: גבול שני (numpy array)
+            boundary1: first boundary strip (numpy array)
+            boundary2: second boundary strip (numpy array)
 
         Returns:
-            float: ציון דמיון (0-1)
+            float: similarity score (0-1)
         """
         if boundary1 is None or boundary2 is None:
             return 0.0
 
         if boundary1.shape != boundary2.shape:
-            # שינוי גודל אם צריך
+            # Resize if needed
             boundary2 = cv2.resize(
                 boundary2, (boundary1.shape[1], boundary1.shape[0]))
 
-        # חישוב ממוצע צבעים
+        # Calculate average colors
         avg1 = boundary1.mean(axis=(0, 1))
         avg2 = boundary2.mean(axis=(0, 1))
 
-        # מרחק אוקלידי
+        # Euclidean distance
         distance = euclidean(avg1, avg2)
-        max_distance = np.sqrt(3 * 255**2)  # מקסימום אפשרי
+        max_distance = np.sqrt(3 * 255**2)  # maximum possible distance
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 - (distance / max_distance)
 
         return max(0, min(1, similarity))
 
     def compare_boundary_histograms(self, boundary1, boundary2):
         """
-        משווה היסטוגרמות צבעים בין גבולות
+        Compares color histograms between two boundary strips
 
         Args:
-            boundary1: גבול ראשון
-            boundary2: גבול שני
+            boundary1: first boundary strip
+            boundary2: second boundary strip
 
         Returns:
-            float: ציון דמיון (0-1)
+            float: similarity score (0-1)
         """
         if boundary1 is None or boundary2 is None:
             return 0.0
@@ -150,39 +150,39 @@ class BoundaryMatcher:
             boundary2 = cv2.resize(
                 boundary2, (boundary1.shape[1], boundary1.shape[0]))
 
-        # המרה ל-HSV
+        # Convert to HSV
         hsv1 = cv2.cvtColor(boundary1, cv2.COLOR_BGR2HSV)
         hsv2 = cv2.cvtColor(boundary2, cv2.COLOR_BGR2HSV)
 
-        # חישוב היסטוגרמות
+        # Calculate histograms
         hist1 = cv2.calcHist([hsv1], [0, 1, 2], None, [
                              8, 8, 8], [0, 180, 0, 256, 0, 256])
         hist2 = cv2.calcHist([hsv2], [0, 1, 2], None, [
                              8, 8, 8], [0, 180, 0, 256, 0, 256])
 
-        # נרמול
+        # Normalize
         hist1 = cv2.normalize(hist1, hist1).flatten()
         hist2 = cv2.normalize(hist2, hist2).flatten()
 
-        # השוואה
+        # Compare
         similarity = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
         return max(0, similarity)
 
     def validate_piece_placement(self, puzzle_image, selected_piece, missing_position):
         """
-        בודק האם החתיכה הנבחרת מתאימה לתמונה
+        Checks whether the selected piece fits the image
 
         Args:
-            puzzle_image: התמונה עם הריבוע השחור
-            selected_piece: החתיכה שהמשתמש בחר
-            missing_position: המיקום של הריבוע השחור
+            puzzle_image: the image with the black square
+            selected_piece: the piece selected by the user
+            missing_position: position of the black square
 
         Returns:
             tuple: (is_match, confidence, details)
         """
         try:
-            # שינוי גודל החתיכה אם צריך
+            # Resize piece if needed
             target_h = missing_position['height']
             target_w = missing_position['width']
 
@@ -190,14 +190,14 @@ class BoundaryMatcher:
                 selected_piece = cv2.resize(
                     selected_piece, (target_w, target_h))
 
-            # חילוץ גבולות מהתמונה
+            # Extract boundaries from the puzzle image
             puzzle_boundaries = self.extract_boundaries(
                 puzzle_image, missing_position)
 
-            # חילוץ גבולות מהחתיכה
+            # Extract boundaries from the piece
             piece_boundaries = self.extract_piece_boundaries(selected_piece)
 
-            # בדיקת התאמה לכל גבול
+            # Score each boundary direction
             scores = {}
 
             for direction in ['top', 'bottom', 'left', 'right']:
@@ -205,7 +205,7 @@ class BoundaryMatcher:
                 piece_bound = piece_boundaries.get(direction)
 
                 if puzzle_bound is not None and piece_bound is not None:
-                    # משקל של 70% להיסטוגרמות, 30% לממוצע צבעים
+                    # 70% weight to histograms, 30% to average color
                     hist_score = self.compare_boundary_histograms(
                         puzzle_bound, piece_bound)
                     color_score = self.compare_boundary_colors(
@@ -215,13 +215,12 @@ class BoundaryMatcher:
                 # else: zone is at the image edge — skip this direction
                 # (don't penalize with 0.0; just average the sides that exist)
 
-            # ציון כולל - ממוצע של כל הגבולות
+            # Overall score — average of available directions
             if scores:
                 confidence = np.mean(list(scores.values()))
             else:
                 confidence = 0.0
 
-            # סף של 70% לאישור
             is_match = confidence >= 0.70
 
             details = {
@@ -239,15 +238,15 @@ class BoundaryMatcher:
 
     def visualize_boundaries(self, puzzle_image, selected_piece, missing_position):
         """
-        יוצר ויזואליזציה של הגבולות לבדיקה
+        Creates a visualization of the boundaries for inspection
 
         Args:
-            puzzle_image: התמונה עם הריבוע השחור
-            selected_piece: החתיכה הנבחרת
-            missing_position: המיקום
+            puzzle_image: the image with the black square
+            selected_piece: the selected piece
+            missing_position: the position
 
         Returns:
-            numpy array: תמונה עם הגבולות מסומנים
+            numpy array: image with boundaries highlighted
         """
         vis = puzzle_image.copy()
 
@@ -256,52 +255,28 @@ class BoundaryMatcher:
         w = missing_position['width']
         h = missing_position['height']
 
-        # צביעת הגבולות בצבעים שונים
+        # Draw boundaries in different colors
         thickness = self.boundary_width
 
-        # עליון - אדום
+        # Top — red
         if y >= thickness:
             cv2.rectangle(vis, (x, y - thickness), (x + w, y), (0, 0, 255), -1)
 
-        # תחתון - ירוק
+        # Bottom — green
         if y + h + thickness <= vis.shape[0]:
             cv2.rectangle(vis, (x, y + h), (x + w, y +
                           h + thickness), (0, 255, 0), -1)
 
-        # שמאל - כחול
+        # Left — blue
         if x >= thickness:
             cv2.rectangle(vis, (x - thickness, y), (x, y + h), (255, 0, 0), -1)
 
-        # ימין - צהוב
+        # Right — yellow
         if x + w + thickness <= vis.shape[1]:
             cv2.rectangle(vis, (x + w, y),
                           (x + w + thickness, y + h), (0, 255, 255), -1)
 
-        # הריבוע עצמו - לבן
+        # The hole itself — white outline
         cv2.rectangle(vis, (x, y), (x + w, y + h), (255, 255, 255), 2)
 
         return vis
-
-
-if __name__ == "__main__":
-    print("🧪 Testing Boundary Matcher...")
-
-    # Create test images
-    puzzle_image = np.random.randint(0, 255, (400, 600, 3), dtype=np.uint8)
-    selected_piece = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-
-    missing_position = {
-        'x': 200,
-        'y': 150,
-        'width': 100,
-        'height': 100
-    }
-
-    matcher = BoundaryMatcher(boundary_width=5)
-    is_match, confidence, details = matcher.validate_piece_placement(
-        puzzle_image, selected_piece, missing_position
-    )
-
-    print(f"Match: {is_match}, Confidence: {confidence:.3f}")
-    print(f"Details: {details}")
-    print("✅ Boundary Matcher - All tests passed!")
