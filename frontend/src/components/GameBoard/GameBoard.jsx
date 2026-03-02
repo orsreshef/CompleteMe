@@ -28,6 +28,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
   } = gameData;
 
   const placedOptionIndices = new Set(Object.values(placements));
+  const pieceAspectRatio = `${missing_positions[0].width} / ${missing_positions[0].height}`;
   const allZonesFilled = Object.keys(placements).length === num_regions;
 
   // ── Drag handlers ────────────────────────────────────────────────────
@@ -276,6 +277,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
                 <div
                   key={idx}
                   className={`pool-piece ${isPlaced ? 'pool-piece-placed' : ''} ${isDragging ? 'pool-piece-dragging' : ''}`}
+                  style={{ aspectRatio: pieceAspectRatio }}
                   draggable={!isPlaced && !isValidating}
                   onDragStart={(e) => !isPlaced && handleDragStart(e, idx)}
                   onDragEnd={handleDragEnd}
