@@ -22,13 +22,14 @@ class PuzzleGenerator:
         self.unsplash_api = UnsplashAPI()
         print("✅ Puzzle Generator initialized")
 
-    def create_puzzle(self, image, difficulty_level=1):
+    def create_puzzle(self, image, difficulty_level=1, num_regions=1):
         """
-        Create a complete puzzle game from an image
+        Create a complete puzzle game from an image.
 
         Args:
             image: input image (numpy array or file path)
             difficulty_level: 1-5 (1=easiest, 5=hardest)
+            num_regions: how many pieces to hide (black squares), 1-4
 
         Returns:
             dict: complete puzzle data
@@ -44,8 +45,10 @@ class PuzzleGenerator:
         difficulty_info = Config.DIFFICULTY_LEVELS[difficulty_level]
         num_pieces = difficulty_info['pieces']
 
-        print(
-            f"🎮 Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces)")
+        # Clamp num_regions: at least 1, at most 4, never >= total pieces
+        num_regions = max(1, min(int(num_regions), 4, num_pieces - 1))
+
+        print(f"🎮 Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces, {num_regions} missing)")
 
         # Resize image to standard size
         image = self.image_processor.resize_image(
@@ -60,65 +63,75 @@ class PuzzleGenerator:
         # Split image into pieces
         pieces = self._split_image_into_pieces(image, grid_rows, grid_cols)
 
-        # Select random piece to hide
-        missing_index = random.randint(0, len(pieces) - 1)
-        missing_piece = pieces[missing_index]
-
-        # Calculate position of missing piece
-        missing_row = missing_index // grid_cols
-        missing_col = missing_index % grid_cols
-
         piece_height = image.shape[0] // grid_rows
         piece_width = image.shape[1] // grid_cols
 
-        missing_position = {
-            'x': missing_col * piece_width,
-            'y': missing_row * piece_height,
-            'width': piece_width,
-            'height': piece_height,
-            'row': missing_row,
-            'col': missing_col,
-            'index': missing_index
-        }
+        # Select num_regions unique random piece indices to hide
+        missing_indices = random.sample(range(len(pieces)), num_regions)
 
-        # Create puzzle image with black square
-        puzzle_image = self.image_processor.create_black_square(
-            image,
-            missing_position['x'],
-            missing_position['y'],
-            missing_position['width'],
-            missing_position['height']
-        )
+        missing_pieces = []
+        missing_positions = []
+        puzzle_image = image.copy()
 
-        # Generate decoy pieces
+        for missing_index in missing_indices:
+            missing_row = missing_index // grid_cols
+            missing_col = missing_index % grid_cols
+
+            pos = {
+                'x': missing_col * piece_width,
+                'y': missing_row * piece_height,
+                'width': piece_width,
+                'height': piece_height,
+                'row': missing_row,
+                'col': missing_col,
+                'index': missing_index
+            }
+            missing_positions.append(pos)
+            missing_pieces.append(pieces[missing_index])
+
+            # Paint that region black
+            puzzle_image = self.image_processor.create_black_square(
+                puzzle_image,
+                pos['x'], pos['y'],
+                pos['width'], pos['height']
+            )
+
+        # Pool always has 6 pieces: num_regions correct + (6 - num_regions) decoys
+        decoy_count = max(6 - num_regions, 2)
         decoy_pieces = self._generate_decoy_pieces(
-            piece_width,
-            piece_height,
-            count=Config.DECOY_COUNT,
+            piece_width, piece_height,
+            count=decoy_count,
             difficulty_level=difficulty_level
         )
 
-        # Combine all options (correct + decoys)
-        all_options = [missing_piece] + decoy_pieces
-
-        # Shuffle options
+        # Combine and shuffle
+        all_options = missing_pieces + decoy_pieces
         random.shuffle(all_options)
 
-        # Find index of correct piece after shuffle
-        correct_index = None
-        for idx, piece in enumerate(all_options):
-            if np.array_equal(piece, missing_piece):
-                correct_index = idx
-                break
+        # Map each correct piece to its index in the shuffled pool
+        correct_indices = []
+        used = set()
+        for correct_piece in missing_pieces:
+            for idx, option in enumerate(all_options):
+                if idx not in used and np.array_equal(option, correct_piece):
+                    correct_indices.append(idx)
+                    used.add(idx)
+                    break
 
-        # Prepare puzzle data
         puzzle_data = {
             'original_image': image,
             'puzzle_image': puzzle_image,
-            'missing_piece': missing_piece,
-            'missing_position': missing_position,
+            # Multi-region fields
+            'missing_pieces': missing_pieces,
+            'missing_positions': missing_positions,
+            'correct_indices': correct_indices,
+            'num_regions': num_regions,
+            # Single-region backward-compat aliases
+            'missing_piece': missing_pieces[0],
+            'missing_position': missing_positions[0],
+            'correct_index': correct_indices[0] if correct_indices else None,
+            # Meta
             'options': all_options,
-            'correct_index': correct_index,
             'difficulty_level': difficulty_level,
             'difficulty_name': difficulty_info['name'],
             'num_pieces': num_pieces,
@@ -126,8 +139,7 @@ class PuzzleGenerator:
             'grid_cols': grid_cols
         }
 
-        print(f"✅ Puzzle created successfully!")
-
+        print(f"✅ Puzzle created: {num_regions} region(s), {len(all_options)} options")
         return puzzle_data
 
     def _calculate_grid_dimensions(self, num_pieces):

@@ -253,6 +253,9 @@ def create_puzzle():
         if difficulty not in Config.DIFFICULTY_LEVELS:
             return jsonify({'error': f'Invalid difficulty level: {difficulty}'}), 400
 
+        # Get number of missing regions
+        num_regions = int(data.get('num_regions', 1))
+
         # Get or generate image
         use_random = data.get('use_random_image', True)
 
@@ -277,24 +280,22 @@ def create_puzzle():
                 return jsonify({'error': 'Invalid image data'}), 400
 
         # Create puzzle
-        print(f"🎮 Creating puzzle with difficulty {difficulty}...")
+        print(f"🎮 Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
         puzzle_data = puzzle_generator.create_puzzle(
-            image, difficulty_level=difficulty)
+            image, difficulty_level=difficulty, num_regions=num_regions)
 
         # Generate unique game ID
         import uuid
         game_id = str(uuid.uuid4())
 
-        # Store game data - UPDATED: now includes puzzle_image!
+        # Store game data (options stored for relative ranking at validation time)
         active_games[game_id] = {
-            # התמונה עם הריבוע השחור
             'puzzle_image': puzzle_data['puzzle_image'],
-            # המיקום של הריבוע
-            'missing_position': puzzle_data['missing_position'],
-            'missing_piece': puzzle_data['missing_piece'],  # נשאר לרמזים
-            'correct_index': puzzle_data['correct_index'],
+            'missing_positions': puzzle_data['missing_positions'],
+            'num_regions': puzzle_data['num_regions'],
             'difficulty': difficulty,
-            'attempts': 0
+            'attempts': 0,
+            'options': puzzle_data['options']
         }
 
         # Convert images to base64 for response
@@ -302,11 +303,17 @@ def create_puzzle():
         options_b64 = [image_to_base64(option)
                        for option in puzzle_data['options']]
 
+        # Image dimensions (for frontend drop-zone overlay positioning)
+        img_h, img_w = puzzle_data['puzzle_image'].shape[:2]
+
         # Prepare response
         response = {
             'game_id': game_id,
             'puzzle_image': puzzle_image_b64,
             'options': options_b64,
+            'missing_positions': puzzle_data['missing_positions'],
+            'image_dimensions': {'width': int(img_w), 'height': int(img_h)},
+            'num_regions': puzzle_data['num_regions'],
             'difficulty': {
                 'level': difficulty,
                 'name': puzzle_data['difficulty_name'],
@@ -337,15 +344,17 @@ def validate_answer():
     Request body (JSON):
     {
         "game_id": "unique_id",
-        "selected_index": 0-4,
-        "selected_piece": "base64_encoded_image"
+        "placements": [
+            {"zone_index": 0, "piece": "base64_encoded_image"},
+            {"zone_index": 1, "piece": "base64_encoded_image"}
+        ]
     }
 
     Returns:
     {
         "is_correct": true/false,
         "confidence": 0.0-1.0,
-        "validation_details": {...},
+        "region_results": [...],
         "message": "Correct!" or "Try again!"
     }
     """
@@ -355,76 +364,125 @@ def validate_answer():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
-        # Get game ID and selected index
         game_id = data.get('game_id')
-        selected_index = data.get('selected_index')
+        placements = data.get('placements', [])
 
-        if not game_id or selected_index is None:
-            return jsonify({'error': 'Missing game_id or selected_index'}), 400
+        if not game_id:
+            return jsonify({'error': 'Missing game_id'}), 400
+        if not placements:
+            return jsonify({'error': 'Missing placements'}), 400
 
-        # Get game data
         if game_id not in active_games:
             return jsonify({'error': 'Invalid game_id or game expired'}), 404
 
         game_data = active_games[game_id]
         game_data['attempts'] += 1
 
-        print(f"🔍 Validating answer for game {game_id}...")
-        print(f"   Selected index: {selected_index}")
+        print(f"🔍 Validating {len(placements)} placement(s) for game {game_id}...")
         print(f"   Attempt: {game_data['attempts']}")
 
-        # Get the selected piece image from client
-        selected_piece_b64 = data.get('selected_piece')
-
-        if not selected_piece_b64:
-            return jsonify({'error': 'Missing selected_piece image'}), 400
-
-        selected_piece = base64_to_image(selected_piece_b64)
-
-        # ═══════════════════════════════════════════════════════════
-        # ✅ UPDATED: Use boundary matching instead of piece comparison
-        # ═══════════════════════════════════════════════════════════
-
-        # Get puzzle image (with black square) and missing position
         puzzle_image = game_data['puzzle_image']
-        missing_position = game_data['missing_position']
+        missing_positions = game_data['missing_positions']
 
-        print("🤖 Running CV + PyTorch validation...")
-        print(f"   Puzzle image shape: {puzzle_image.shape}")
-        print(f"   Selected piece shape: {selected_piece.shape}")
-        print(f"   Missing position: {missing_position}")
+        region_results = []
+        all_correct = True
+        total_confidence = 0.0
 
-        # Run comprehensive CV + PyTorch validation
-        is_match, confidence, validation_details = validator.validate_comprehensive(
-            puzzle_image,      # התמונה עם הריבוע השחור
-            selected_piece,    # החתיכה שהמשתמש בחר
-            missing_position   # המיקום של הריבוע השחור
-        )
+        all_options = game_data['options']
 
-        print(f"   Result: {'✅ CORRECT' if is_match else '❌ WRONG'}")
-        print(f"   Confidence: {confidence:.3f}")
+        for placement in placements:
+            zone_index = int(placement.get('zone_index', 0))
+            option_index = int(placement.get('option_index', 0))
 
-        # Prepare response
-        # Prepare response - המר float32 ל-float רגיל
+            if zone_index >= len(missing_positions):
+                return jsonify({'error': f'Invalid zone_index: {zone_index}'}), 400
+            if option_index >= len(all_options):
+                return jsonify({'error': f'Invalid option_index: {option_index}'}), 400
+
+            placed_piece = all_options[option_index]
+            missing_position = missing_positions[zone_index]
+
+            # ── Relative ranking ──────────────────────────────────────────
+            # Score every candidate piece against this zone using boundary
+            # matching (fast, no GPU).  User is correct if they rank #1.
+            # When scores are within TIE_MARGIN (uniform-colour regions like
+            # white walls, clear sky), the comprehensive score breaks the tie.
+            TIE_MARGIN = 0.02
+
+            print(f"   Zone {zone_index}: ranking {len(all_options)} options by boundary score...")
+            option_boundary_scores = []
+            for opt in all_options:
+                _, opt_conf, _ = validator.boundary_matcher.validate_piece_placement(
+                    puzzle_image, opt, missing_position
+                )
+                option_boundary_scores.append(opt_conf)
+
+            user_boundary_score = option_boundary_scores[option_index]
+            best_boundary_score = max(option_boundary_scores)
+            rank = sum(1 for s in option_boundary_scores if s > user_boundary_score) + 1
+
+            print(f"      Scores: {[f'{s:.3f}' for s in option_boundary_scores]}")
+            print(f"      User option {option_index}: {user_boundary_score:.3f}  rank {rank}/{len(all_options)}")
+
+            # Run comprehensive validation for the confidence display (and tie-breaking)
+            _, confidence, details = validator.validate_comprehensive(
+                puzzle_image, placed_piece, missing_position
+            )
+
+            if rank == 1:
+                is_match = True
+            elif best_boundary_score - user_boundary_score <= TIE_MARGIN:
+                # Tie zone — run comprehensive on each competing option and compare
+                competing_indices = [
+                    i for i, s in enumerate(option_boundary_scores)
+                    if s > user_boundary_score
+                ]
+                best_competing_conf = 0.0
+                for comp_idx in competing_indices:
+                    _, comp_conf, _ = validator.validate_comprehensive(
+                        puzzle_image, all_options[comp_idx], missing_position
+                    )
+                    best_competing_conf = max(best_competing_conf, comp_conf)
+                is_match = (confidence >= best_competing_conf)
+                print(f"      TIE resolved: user {confidence:.3f} vs competitor {best_competing_conf:.3f} → {'CORRECT' if is_match else 'WRONG'}")
+            else:
+                is_match = False
+
+            print(f"   Zone {zone_index}: {'✅ CORRECT' if is_match else '❌ WRONG'} (rank {rank}, conf {confidence:.3f})")
+
+            region_results.append({
+                'zone_index': zone_index,
+                'is_correct': bool(is_match),
+                'confidence': float(confidence),
+                'validation_details': {
+                    'boundary_score': float(details.get('boundary', {}).get('score', 0.0)),
+                    'semantic_score': float(details.get('semantic', {}).get('score', 0.0)),
+                    'color_score': float(details.get('color', {}).get('score', 0.0)),
+                    'texture_score': float(details.get('texture', {}).get('score', 0.0)),
+                    'edge_score': float(details.get('edges', {}).get('score', 0.0))
+                }
+            })
+
+            if not is_match:
+                all_correct = False
+            total_confidence += confidence
+
+        overall_confidence = total_confidence / len(placements)
+
         response = {
-            'is_correct': bool(is_match),
-            'confidence': float(confidence),
-            'attempt_number': int(game_data['attempts']),
-            'validation_details': {
-                'boundary_score': float(validation_details.get('boundary', {}).get('score', 0.0)),
-                'features_score': float(validation_details.get('features', {}).get('score', 0.0)),
-                'color_score': float(validation_details.get('color', {}).get('score', 0.0)),
-                'texture_score': float(validation_details.get('texture', {}).get('score', 0.0)),
-                'edge_score': float(validation_details.get('edges', {}).get('score', 0.0))
-            }
+            'is_correct': all_correct,
+            'confidence': float(overall_confidence),
+            'region_results': region_results,
+            'attempt_number': int(game_data['attempts'])
         }
-        if is_match:
+
+        if all_correct:
             response['message'] = '🎉 Correct! Well done!'
-            # Clean up game data after success (optional)
-            # del active_games[game_id]
         else:
-            response['message'] = '❌ Not quite right. Try again!'
-            response['hint'] = _generate_hint(confidence, validation_details)
+            wrong = [r for r in region_results if not r['is_correct']]
+            response['message'] = f'❌ {len(wrong)} piece(s) not quite right. Try again!'
+            worst = min(wrong, key=lambda r: r['confidence'])
+            response['hint'] = _generate_hint(worst['confidence'], {})
 
         return jsonify(response), 200
 

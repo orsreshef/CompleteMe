@@ -1,6 +1,6 @@
 """
 Computer Vision Validator - Updated Version
-משלב את כל האלגוריתמים לוולידציה מקיפה עם בדיקת גבולות
+Combines all algorithms for comprehensive validation with boundary checking
 """
 
 import numpy as np
@@ -16,14 +16,14 @@ from models.image_processor import ImageProcessor
 
 class CVValidator:
     """
-    מערכת וולידציה מקיפה המשלבת ראייה ממוחשבת ולמידה עמוקה
+    Comprehensive validation system combining computer vision and deep learning
     """
 
     def __init__(self):
-        """אתחול כל האלגוריתמים"""
+        """Initialize all algorithms"""
         print("🚀 Initializing CV Validator...")
 
-        # אלגוריתמי למידה עמוקה (PyTorch)
+        # Deep learning algorithms (PyTorch)
         try:
             self.feature_extractor = FeatureExtractor('resnet50')
             self.has_deep_learning = True
@@ -33,10 +33,10 @@ class CVValidator:
             self.feature_extractor = None
             self.has_deep_learning = False
 
-        # בדיקת גבולות (מרכזי!)
-        self.boundary_matcher = BoundaryMatcher(boundary_width=5)
+        # Boundary matching (core component)
+        self.boundary_matcher = BoundaryMatcher(boundary_width=10)
 
-        # אלגוריתמי Computer Vision קלאסיים
+        # Classical Computer Vision algorithms
         self.color_analyzer = ColorAnalyzer()
         self.texture_analyzer = TextureAnalyzer()
         self.edge_analyzer = EdgeAnalyzer()
@@ -50,13 +50,13 @@ class CVValidator:
 
     def validate(self, puzzle_image, selected_piece, missing_position, threshold=0.75):
         """
-        וולידציה מהירה (בדיקת גבולות בלבד)
+        Fast validation (boundary check only)
 
         Args:
-            puzzle_image: התמונה עם הריבוע השחור
-            selected_piece: החתיכה שהמשתמש בחר
-            missing_position: dict עם x, y, width, height
-            threshold: סף דמיון
+            puzzle_image: the image with the black square
+            selected_piece: the piece selected by the user
+            missing_position: dict with x, y, width, height
+            threshold: similarity threshold
 
         Returns:
             tuple: (is_match, confidence)
@@ -72,7 +72,7 @@ class CVValidator:
             print(f"❌ Error in fast validation: {e}")
             return False, 0.0
 
-    def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.65):
+    def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.58):
         """
         Comprehensive validation: boundary matching + PyTorch DL + color + texture + edges.
 
@@ -139,36 +139,42 @@ class CVValidator:
             weights['boundary'] = 0.35
             print(f"      Boundary score: {boundary_conf:.3f}")
 
-            # 2. PyTorch ResNet50 on boundary strips - weight 0.35
-            # Compare deep features of each puzzle strip to the matching piece edge strip.
+            # 2. Semantic deep learning: context region vs full piece - weight 0.35
+            # Extract ResNet50 features from the surrounding puzzle context (the region
+            # around the hole) and compare them to the full candidate piece.
+            # This detects whether the piece semantically belongs here:
+            # e.g. an eye matches a face context, but a flower does not.
             if self.has_deep_learning and self.feature_extractor:
-                print("   🤖 Running deep learning boundary analysis...")
+                print("   🤖 Running semantic deep learning analysis...")
                 try:
-                    dl_scores = []
-                    for pz, pc in strip_pairs:
-                        if pz.size > 0 and pc.size > 0:
-                            dl_scores.append(
-                                self.feature_extractor.compare_features(
-                                    self.feature_extractor.extract_features(pz),
-                                    self.feature_extractor.extract_features(pc),
-                                    method='cosine'
-                                )
-                            )
-                    if dl_scores:
-                        dl_sim = float(np.mean(dl_scores))
-                        validation_results['features'] = {'score': dl_sim, 'method': 'resnet50_boundary_strips'}
-                        weights['features'] = 0.35
-                        print(f"      Deep Learning score: {dl_sim:.3f}")
+                    # Use a large margin so the black hole is a small fraction
+                    # of the context region and doesn't dominate ResNet50 features.
+                    margin = max(50, min(150, h, w))
+                    context_region = self._extract_context_region(
+                        puzzle_image, missing_position, margin=margin
+                    )
+                    if context_region.size > 0 and piece_resized.size > 0:
+                        ctx_features = self.feature_extractor.extract_features(context_region)
+                        piece_features = self.feature_extractor.extract_features(piece_resized)
+                        semantic_sim = self.feature_extractor.compare_features(
+                            ctx_features, piece_features, method='cosine'
+                        )
+                        validation_results['semantic'] = {
+                            'score': float(semantic_sim),
+                            'method': 'resnet50_semantic_context'
+                        }
+                        weights['semantic'] = 0.35
+                        print(f"      Semantic score: {semantic_sim:.3f}")
                     else:
-                        validation_results['features'] = {'score': 0.0}
-                        weights['features'] = 0.0
+                        validation_results['semantic'] = {'score': 0.0}
+                        weights['semantic'] = 0.0
                 except Exception as e:
-                    print(f"      ⚠️ Deep learning error: {e}")
-                    validation_results['features'] = {'score': 0.0}
-                    weights['features'] = 0.0
+                    print(f"      ⚠️ Semantic deep learning error: {e}")
+                    validation_results['semantic'] = {'score': 0.0}
+                    weights['semantic'] = 0.0
             else:
-                validation_results['features'] = {'score': 0.0}
-                weights['features'] = 0.0
+                validation_results['semantic'] = {'score': 0.0}
+                weights['semantic'] = 0.0
 
             # 3. Color comparison on boundary strips - weight 0.15
             # Compare the average BGR color of each puzzle strip to the matching piece strip.
@@ -258,15 +264,15 @@ class CVValidator:
 
     def _place_piece_in_image(self, puzzle_image, piece, missing_position):
         """
-        מציב חתיכה בתמונה (עבור בדיקת למידה עמוקה)
+        Places a piece into the image (for deep learning validation)
 
         Args:
-            puzzle_image: התמונה עם הריבוע השחור
-            piece: החתיכה
-            missing_position: המיקום
+            puzzle_image: the image with the black square
+            piece: the piece
+            missing_position: the position
 
         Returns:
-            numpy array: תמונה עם החתיכה מוצבת
+            numpy array: image with the piece placed
         """
         result = puzzle_image.copy()
 
@@ -275,32 +281,32 @@ class CVValidator:
         w = missing_position['width']
         h = missing_position['height']
 
-        # שינוי גודל החתיכה
+        # Resize the piece
         piece_resized = cv2.resize(piece, (w, h))
 
-        # הצבה
+        # Place it
         result[y:y+h, x:x+w] = piece_resized
 
         return result
 
     def _extract_context_region(self, puzzle_image, missing_position, margin=20):
         """
-        מחלץ את האזור מסביב לריבוע השחור
+        Extracts the region surrounding the black square hole
 
         Args:
-            puzzle_image: התמונה
-            missing_position: המיקום
-            margin: שוליים לחילוץ
+            puzzle_image: the image
+            missing_position: the position
+            margin: margin to extract around the hole
 
         Returns:
-            numpy array: אזור ההקשר
+            numpy array: context region
         """
         x = missing_position['x']
         y = missing_position['y']
         w = missing_position['width']
         h = missing_position['height']
 
-        # חישוב גבולות עם שוליים
+        # Compute bounds with margin, clamped to image edges
         x1 = max(0, x - margin)
         y1 = max(0, y - margin)
         x2 = min(puzzle_image.shape[1], x + w + margin)

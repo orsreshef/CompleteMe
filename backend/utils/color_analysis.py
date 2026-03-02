@@ -1,6 +1,6 @@
 """
 Color Analysis Module
-ניתוח צבעים מתקדם להשוואת תמונות
+Advanced color analysis for image comparison
 """
 
 import numpy as np
@@ -11,25 +11,25 @@ import colorsys
 
 class ColorAnalyzer:
     """
-    מחלקה לניתוח והשוואת צבעים בתמונות
+    Class for analyzing and comparing colors in images
     """
 
     def __init__(self):
-        """אתחול מנתח הצבעים"""
+        """Initialize the color analyzer"""
         print("✅ Color Analyzer initialized")
 
     def extract_dominant_colors(self, image, k=5):
         """
-        מחלץ את הצבעים הדומיננטיים בתמונה באמצעות K-Means
+        Extracts the dominant colors in the image using K-Means
 
         Args:
-            image: תמונה (numpy array)
-            k: מספר צבעים דומיננטיים לחלץ
+            image: image (numpy array)
+            k: number of dominant colors to extract
 
         Returns:
-            list: רשימת הצבעים הדומיננטיים (RGB)
+            list: list of dominant colors (RGB)
         """
-        # שינוי צורה לרשימת פיקסלים
+        # Reshape to pixel list
         pixels = image.reshape(-1, 3).astype(np.float32)
 
         # K-Means clustering
@@ -38,23 +38,23 @@ class ColorAnalyzer:
         _, labels, centers = cv2.kmeans(
             pixels, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
 
-        # המרה ל-int
+        # Convert to int
         dominant_colors = centers.astype(np.uint8)
 
         return dominant_colors
 
     def calculate_color_histogram(self, image, color_space='HSV'):
         """
-        מחשב היסטוגרמת צבעים
+        Calculates a color histogram
 
         Args:
-            image: תמונה
-            color_space: מרחב צבעים - 'HSV', 'RGB', או 'LAB'
+            image: image
+            color_space: color space - 'HSV', 'RGB', or 'LAB'
 
         Returns:
-            היסטוגרמה מנורמלת
+            Normalized histogram
         """
-        # המרה למרחב צבעים מתאים
+        # Convert to appropriate color space
         if color_space == 'HSV':
             converted = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             # HSV: Hue (0-180), Saturation (0-255), Value (0-255)
@@ -71,61 +71,61 @@ class ColorAnalyzer:
         else:
             raise ValueError(f"Unknown color space: {color_space}")
 
-        # נרמול
+        # Normalize
         hist = cv2.normalize(hist, hist).flatten()
 
         return hist
 
     def compare_color_histograms(self, hist1, hist2, method='correlation'):
         """
-        משווה שתי היסטוגרמות צבעים
+        Compares two color histograms
 
         Args:
-            hist1: היסטוגרמה ראשונה
-            hist2: היסטוגרמה שנייה
-            method: שיטת השוואה - 'correlation', 'chi_square', 'intersection', 'bhattacharyya'
+            hist1: first histogram
+            hist2: second histogram
+            method: comparison method - 'correlation', 'chi_square', 'intersection', 'bhattacharyya'
 
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         if method == 'correlation':
             score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-            return max(0, score)  # מנרמל ל-0-1
+            return max(0, score)  # Normalize to 0-1
         elif method == 'chi_square':
             score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CHISQR)
-            # ככל שהערך קטן יותר, הדמיון גדול יותר
+            # Lower value means higher similarity
             return 1 / (1 + score)
         elif method == 'intersection':
             score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_INTERSECT)
             return score
         elif method == 'bhattacharyya':
             score = cv2.compareHist(hist1, hist2, cv2.HISTCMP_BHATTACHARYYA)
-            return 1 - score  # מנרמל ל-0-1
+            return 1 - score  # Normalize to 0-1
         else:
             raise ValueError(f"Unknown method: {method}")
 
     def analyze_average_color(self, image):
         """
-        מחשב את הצבע הממוצע בתמונה
+        Calculates the average color in the image
 
         Args:
-            image: תמונה
+            image: image
 
         Returns:
-            tuple: (B, G, R) - ערכי הצבע הממוצע
+            tuple: (B, G, R) - average color values
         """
         avg_color = image.mean(axis=0).mean(axis=0)
         return tuple(avg_color.astype(int))
 
     def calculate_color_moments(self, image):
         """
-        מחשב מומנטים סטטיסטיים של צבעים (mean, std, skewness)
+        Calculates statistical color moments (mean, std, skewness)
 
         Args:
-            image: תמונה
+            image: image
 
         Returns:
-            dict: מומנטים לכל ערוץ צבע
+            dict: moments for each color channel
         """
         moments = {}
 
@@ -141,7 +141,7 @@ class ColorAnalyzer:
         return moments
 
     def _calculate_skewness(self, data):
-        """מחשב skewness (אסימטריה) של התפלגות"""
+        """Calculates the skewness of a distribution"""
         mean = np.mean(data)
         std = np.std(data)
         if std == 0:
@@ -150,14 +150,14 @@ class ColorAnalyzer:
 
     def compare_color_moments(self, moments1, moments2):
         """
-        משווה מומנטים של צבעים
+        Compares color moments
 
         Args:
-            moments1: מומנטים של תמונה ראשונה
-            moments2: מומנטים של תמונה שנייה
+            moments1: moments of the first image
+            moments2: moments of the second image
 
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         total_distance = 0
 
@@ -166,54 +166,54 @@ class ColorAnalyzer:
                 val1 = moments1[channel][moment_type]
                 val2 = moments2[channel][moment_type]
 
-                # נרמול לפי טווח הערכים
+                # Normalize by value range
                 if moment_type == 'mean' or moment_type == 'std':
                     max_val = 255
                 else:  # skewness
-                    max_val = 3  # ערך טיפוסי מקסימלי
+                    max_val = 3  # typical maximum value
 
                 distance = abs(val1 - val2) / max_val
                 total_distance += distance
 
-        # ממוצע המרחקים (9 השוואות: 3 ערוצים × 3 מומנטים)
+        # Average of distances (9 comparisons: 3 channels × 3 moments)
         avg_distance = total_distance / 9
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 - avg_distance
 
         return max(0, min(1, similarity))
 
     def validate_color_match(self, image1, image2, threshold=0.75):
         """
-        בדיקה מקיפה של התאמת צבעים בין שתי תמונות
+        Comprehensive check of color match between two images
 
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
-            threshold: סף דמיון
+            image1: first image
+            image2: second image
+            threshold: similarity threshold
 
         Returns:
             tuple: (is_match, score, details)
         """
         try:
-            # 1. השוואת היסטוגרמות (HSV - הכי טוב לצבעים)
+            # 1. Histogram comparison (HSV - best for colors)
             hist1_hsv = self.calculate_color_histogram(image1, 'HSV')
             hist2_hsv = self.calculate_color_histogram(image2, 'HSV')
             hist_similarity = self.compare_color_histograms(
                 hist1_hsv, hist2_hsv, 'correlation')
 
-            # 2. השוואת מומנטים סטטיסטיים
+            # 2. Statistical moments comparison
             moments1 = self.calculate_color_moments(image1)
             moments2 = self.calculate_color_moments(image2)
             moments_similarity = self.compare_color_moments(moments1, moments2)
 
-            # 3. השוואת צבע ממוצע
+            # 3. Average color comparison
             avg1 = self.analyze_average_color(image1)
             avg2 = self.analyze_average_color(image2)
-            avg_distance = euclidean(avg1, avg2) / (255 * np.sqrt(3))  # נרמול
+            avg_distance = euclidean(avg1, avg2) / (255 * np.sqrt(3))  # Normalize
             avg_similarity = 1 - avg_distance
 
-            # ציון משוקלל
+            # Weighted score
             weights = {
                 'histogram': 0.5,
                 'moments': 0.3,
@@ -243,50 +243,50 @@ class ColorAnalyzer:
 
     def get_color_palette(self, image, n_colors=5):
         """
-        מחלץ פלטת צבעים מתמונה
+        Extracts a color palette from an image
 
         Args:
-            image: תמונה
-            n_colors: מספר צבעים בפלטה
+            image: image
+            n_colors: number of colors in the palette
 
         Returns:
-            list: רשימת צבעים ב-RGB
+            list: list of colors in RGB
         """
         dominant_colors = self.extract_dominant_colors(image, k=n_colors)
 
-        # המרה מ-BGR ל-RGB
+        # Convert from BGR to RGB
         rgb_colors = [tuple(color[::-1]) for color in dominant_colors]
 
         return rgb_colors
 
     def visualize_color_comparison(self, image1, image2):
         """
-        יוצר ויזואליזציה של השוואת צבעים
+        Creates a visualization of color comparison
 
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
+            image1: first image
+            image2: second image
 
         Returns:
-            תמונת השוואה
+            Comparison image
         """
         h1, w1 = image1.shape[:2]
         h2, w2 = image2.shape[:2]
 
-        # יצירת קנבס
+        # Create canvas
         max_h = max(h1, h2)
         comparison = np.zeros((max_h, w1 + w2 + 20, 3), dtype=np.uint8)
         comparison.fill(255)
 
-        # הצבת התמונות
+        # Place images
         comparison[0:h1, 0:w1] = image1
         comparison[0:h2, w1+20:w1+20+w2] = image2
 
-        # הוספת פלטות צבעים
+        # Add color palettes
         palette1 = self.get_color_palette(image1)
         palette2 = self.get_color_palette(image2)
 
-        # ציור פלטות
+        # Draw palettes
         palette_height = 50
         color_width = w1 // len(palette1)
 
@@ -306,25 +306,25 @@ class ColorAnalyzer:
 
 
 if __name__ == "__main__":
-    # בדיקה
+    # Test
     print("🧪 Testing Color Analysis Module...")
 
-    # יצירת תמונות דמה
+    # Create dummy images
     test_image1 = np.random.randint(50, 150, (100, 100, 3), dtype=np.uint8)
     test_image2 = test_image1.copy()
-    test_image2 = cv2.GaussianBlur(test_image2, (5, 5), 0)  # הוספת blur קל
+    test_image2 = cv2.GaussianBlur(test_image2, (5, 5), 0)  # Add slight blur
 
     analyzer = ColorAnalyzer()
 
-    # בדיקת חילוץ צבעים דומיננטיים
+    # Test dominant color extraction
     colors = analyzer.extract_dominant_colors(test_image1)
     print(f"✅ Dominant colors extracted: {len(colors)} colors")
 
-    # בדיקת היסטוגרמה
+    # Test histogram
     hist = analyzer.calculate_color_histogram(test_image1)
     print(f"✅ Histogram calculated: shape={hist.shape}")
 
-    # בדיקת השוואה
+    # Test comparison
     is_match, score, details = analyzer.validate_color_match(
         test_image1, test_image2)
     print(f"✅ Color match validation: match={is_match}, score={score:.3f}")

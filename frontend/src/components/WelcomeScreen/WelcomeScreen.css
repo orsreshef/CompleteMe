@@ -109,6 +109,150 @@
   color: var(--text-secondary);
 }
 
+/* Selected difficulty card */
+.difficulty-card.selected {
+  background: var(--card-color);
+}
+
+.difficulty-card.selected .difficulty-name,
+.difficulty-card.selected .difficulty-pieces {
+  color: white;
+}
+
+.difficulty-card.selected .difficulty-emoji {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.difficulty-selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  color: var(--card-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Region Section */
+.region-section {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-xl);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+}
+
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+}
+
+.region-card {
+  background: white;
+  border: 3px solid var(--region-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg) var(--spacing-md);
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.region-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--region-color);
+}
+
+.region-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.region-card.selected {
+  background: var(--region-color);
+}
+
+.region-card.selected .region-count,
+.region-card.selected .region-label {
+  color: white;
+}
+
+.region-emoji {
+  font-size: 1.2rem;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 3px;
+  display: block;
+}
+
+.region-count {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Fredoka', sans-serif;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.region-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.region-selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  color: var(--region-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Continue button */
+.btn-continue {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto var(--spacing-lg);
+  padding: 1.2rem 2rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-size: 1.45rem;
+  font-weight: 700;
+  font-family: 'Fredoka', sans-serif;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.45);
+  letter-spacing: 0.4px;
+  transition: box-shadow 0.2s;
+}
+
+.btn-continue:hover {
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.6);
+}
+
 /* Features */
 .features-section {
   display: flex;

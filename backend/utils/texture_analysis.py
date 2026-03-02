@@ -1,6 +1,6 @@
 """
 Texture Analysis Module
-ניתוח מרקמים מתקדם להשוואת תמונות
+Advanced texture analysis for image comparison
 """
 
 import numpy as np
@@ -12,36 +12,36 @@ from scipy.spatial.distance import euclidean
 
 class TextureAnalyzer:
     """
-    מחלקה לניתוח והשוואת מרקמים בתמונות
+    Class for analyzing and comparing textures in images
     """
 
     def __init__(self):
-        """אתחול מנתח המרקמים"""
+        """Initialize the texture analyzer"""
         print("✅ Texture Analyzer initialized")
 
     def calculate_lbp(self, image, radius=1, n_points=8):
         """
-        חישוב Local Binary Pattern (LBP)
-        LBP הוא תיאור מקומי של מרקם התמונה
-        
+        Calculate Local Binary Pattern (LBP)
+        LBP is a local descriptor of image texture
+
         Args:
-            image: תמונה (numpy array)
-            radius: רדיוס השכנים
-            n_points: מספר נקודות סביב הפיקסל
-        
+            image: image (numpy array)
+            radius: neighbour radius
+            n_points: number of points around the pixel
+
         Returns:
             LBP histogram (normalized)
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # חישוב LBP
+        # Calculate LBP
         lbp = local_binary_pattern(gray, n_points, radius, method='uniform')
 
-        # חישוב היסטוגרמה
+        # Calculate histogram
         n_bins = n_points + 2  # uniform patterns + 2
         hist, _ = np.histogram(lbp.ravel(), bins=n_bins,
                                range=(0, n_bins), density=True)
@@ -50,32 +50,32 @@ class TextureAnalyzer:
 
     def calculate_glcm(self, image, distances=[1], angles=[0, np.pi/4, np.pi/2, 3*np.pi/4]):
         """
-        חישוב Gray-Level Co-occurrence Matrix (GLCM)
-        GLCM מתאר את הקשר המרחבי בין פיקסלים
-        
+        Calculate Gray-Level Co-occurrence Matrix (GLCM)
+        GLCM describes the spatial relationship between pixels
+
         Args:
-            image: תמונה
-            distances: רשימת מרחקים לבדיקה
-            angles: רשימת זוויות לבדיקה
-        
+            image: image
+            distances: list of distances to check
+            angles: list of angles to check
+
         Returns:
-            dict: מאפייני GLCM (contrast, dissimilarity, homogeneity, energy, correlation)
+            dict: GLCM properties (contrast, dissimilarity, homogeneity, energy, correlation)
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # קוונטיזציה ל-256 רמות (אם צריך)
+        # Quantize to 256 levels if needed
         if gray.max() > 255:
             gray = (gray / gray.max() * 255).astype(np.uint8)
 
-        # חישוב GLCM
+        # Calculate GLCM
         glcm = graycomatrix(gray, distances=distances, angles=angles,
                             levels=256, symmetric=True, normed=True)
 
-        # חילוץ מאפיינים
+        # Extract properties
         properties = {
             'contrast': graycoprops(glcm, 'contrast').mean(),
             'dissimilarity': graycoprops(glcm, 'dissimilarity').mean(),
@@ -89,17 +89,17 @@ class TextureAnalyzer:
 
     def calculate_gabor_features(self, image, num_filters=8):
         """
-        חישוב Gabor Features
-        Gabor filters מזהים תבניות בתדרים וכיוונים שונים
-        
+        Calculate Gabor Features
+        Gabor filters detect patterns at different frequencies and orientations
+
         Args:
-            image: תמונה
-            num_filters: מספר פילטרים (כיוונים)
-        
+            image: image
+            num_filters: number of filters (orientations)
+
         Returns:
-            וקטור מאפייני Gabor
+            Gabor feature vector
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
@@ -107,23 +107,23 @@ class TextureAnalyzer:
 
         features = []
 
-        # פרמטרים של Gabor
-        ksize = 31  # גודל הקרנל
+        # Gabor parameters
+        ksize = 31  # kernel size
         sigma = 4.0
         lambd = 10.0
         gamma = 0.5
         psi = 0
 
-        # יצירת פילטרים בכיוונים שונים
+        # Create filters at different orientations
         for theta in np.arange(0, np.pi, np.pi / num_filters):
-            # יצירת Gabor kernel
+            # Create Gabor kernel
             kernel = cv2.getGaborKernel(
                 (ksize, ksize), sigma, theta, lambd, gamma, psi)
 
-            # החלת הפילטר
+            # Apply filter
             filtered = cv2.filter2D(gray, cv2.CV_64F, kernel)
 
-            # חישוב ממוצע וסטיית תקן
+            # Calculate mean and standard deviation
             features.append(filtered.mean())
             features.append(filtered.std())
 
@@ -131,69 +131,69 @@ class TextureAnalyzer:
 
     def calculate_entropy(self, image):
         """
-        חישוב אנטרופיה של תמונה
-        אנטרופיה מודדת את כמות המידע/אקראיות בתמונה
-        
+        Calculate image entropy
+        Entropy measures the amount of information/randomness in the image
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
             entropy value
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # חישוב היסטוגרמה
+        # Calculate histogram
         hist, _ = np.histogram(gray.ravel(), bins=256,
                                range=(0, 256), density=True)
 
-        # הסרת ערכים אפסיים (למנוע log(0))
+        # Remove zero values (prevent log(0))
         hist = hist[hist > 0]
 
-        # חישוב אנטרופיה
+        # Calculate entropy
         ent = entropy(hist, base=2)
 
         return ent
 
     def calculate_edge_density(self, image):
         """
-        חישוב צפיפות קצוות בתמונה
-        קצוות רבים = מרקם מורכב
-        
+        Calculate edge density in the image
+        More edges = more complex texture
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
             edge density (0-1)
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # זיהוי קצוות עם Canny
+        # Detect edges with Canny
         edges = cv2.Canny(gray, 50, 150)
 
-        # חישוב צפיפות (אחוז פיקסלי קצה)
+        # Calculate density (percentage of edge pixels)
         edge_density = np.count_nonzero(edges) / edges.size
 
         return edge_density
 
     def calculate_fourier_features(self, image):
         """
-        חישוב מאפיינים בתחום התדר (Fourier)
-        
+        Calculate features in the frequency domain (Fourier)
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            dict: מאפיינים בתחום התדר
+            dict: features in the frequency domain
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
@@ -204,7 +204,7 @@ class TextureAnalyzer:
         f_shift = np.fft.fftshift(f_transform)
         magnitude = np.abs(f_shift)
 
-        # חישוב מאפיינים
+        # Calculate features
         features = {
             'mean_magnitude': magnitude.mean(),
             'std_magnitude': magnitude.std(),
@@ -216,33 +216,33 @@ class TextureAnalyzer:
 
     def compare_lbp(self, hist1, hist2):
         """
-        משווה שני LBP histograms
-        
+        Compare two LBP histograms
+
         Args:
-            hist1: LBP histogram ראשון
-            hist2: LBP histogram שני
-        
+            hist1: first LBP histogram
+            hist2: second LBP histogram
+
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         # Chi-square distance
         chi_square = np.sum((hist1 - hist2) ** 2 / (hist1 + hist2 + 1e-10))
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 / (1 + chi_square)
 
         return similarity
 
     def compare_glcm(self, props1, props2):
         """
-        משווה מאפייני GLCM
-        
+        Compare GLCM properties
+
         Args:
-            props1: GLCM properties ראשון
-            props2: GLCM properties שני
-        
+            props1: first GLCM properties
+            props2: second GLCM properties
+
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         total_distance = 0
 
@@ -250,9 +250,9 @@ class TextureAnalyzer:
             val1 = props1[key]
             val2 = props2[key]
 
-            # נרמול
+            # Normalize
             if key == 'contrast':
-                max_val = 100  # ערך טיפוסי מקסימלי
+                max_val = 100  # typical maximum value
             elif key in ['correlation', 'homogeneity', 'energy', 'ASM']:
                 max_val = 1
             else:
@@ -261,45 +261,45 @@ class TextureAnalyzer:
             distance = abs(val1 - val2) / max_val
             total_distance += distance
 
-        # ממוצע המרחקים
+        # Average of distances
         avg_distance = total_distance / len(props1)
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 - min(avg_distance, 1)
 
         return similarity
 
     def compare_gabor(self, features1, features2):
         """
-        משווה Gabor features
-        
+        Compare Gabor features
+
         Args:
-            features1: Gabor features ראשון
-            features2: Gabor features שני
-        
+            features1: first Gabor features
+            features2: second Gabor features
+
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         # Euclidean distance
         distance = euclidean(features1, features2)
 
-        # נרמול (הערך המקסימלי האפשרי הוא די גדול)
-        max_distance = np.sqrt(len(features1)) * 100  # הערכה
+        # Normalize (the maximum possible value is quite large)
+        max_distance = np.sqrt(len(features1)) * 100  # estimate
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 - min(distance / max_distance, 1)
 
         return similarity
 
     def validate_texture_match(self, image1, image2, threshold=0.70):
         """
-        בדיקה מקיפה של התאמת מרקמים בין שתי תמונות
-        
+        Comprehensive check of texture match between two images
+
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
-            threshold: סף דמיון
-        
+            image1: first image
+            image2: second image
+            threshold: similarity threshold
+
         Returns:
             tuple: (is_match, score, details)
         """
@@ -330,7 +330,7 @@ class TextureAnalyzer:
             entropy_similarity = 1 - \
                 abs(entropy1 - entropy2) / max(entropy1, entropy2, 1)
 
-            # ציון משוקלל
+            # Weighted score
             weights = {
                 'lbp': 0.30,
                 'glcm': 0.25,
@@ -366,19 +366,19 @@ class TextureAnalyzer:
 
     def analyze_texture_complexity(self, image):
         """
-        מנתח את מורכבות המרקם בתמונה
-        
+        Analyzes the texture complexity of an image
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            dict: מדדי מורכבות
+            dict: complexity metrics
         """
         entropy_val = self.calculate_entropy(image)
         edge_density = self.calculate_edge_density(image)
         glcm_props = self.calculate_glcm(image)
 
-        # חישוב מורכבות כוללת
+        # Calculate overall complexity
         complexity = {
             'entropy': entropy_val,
             'edge_density': edge_density,
@@ -391,7 +391,7 @@ class TextureAnalyzer:
 
 class AdvancedTextureAnalyzer(TextureAnalyzer):
     """
-    מחלקה מתקדמת יותר עם טכניקות נוספות
+    Extended analyzer with additional techniques
     """
 
     def __init__(self):
@@ -400,19 +400,19 @@ class AdvancedTextureAnalyzer(TextureAnalyzer):
 
     def calculate_wavelet_features(self, image):
         """
-        חישוב Wavelet Transform features
-        Wavelets טובים לניתוח מרקמים בסקאלות שונות
-        
+        Calculate Wavelet Transform features
+        Wavelets are effective for analyzing textures at different scales
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            וקטור features
+            feature vector
         """
         try:
             import pywt
 
-            # המרה לגווני אפור
+            # Convert to grayscale
             if len(image.shape) == 3:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             else:
@@ -422,7 +422,7 @@ class AdvancedTextureAnalyzer(TextureAnalyzer):
             coeffs = pywt.dwt2(gray, 'haar')
             cA, (cH, cV, cD) = coeffs
 
-            # חישוב מאפיינים מכל רכיב
+            # Calculate features from each component
             features = []
             for coeff in [cA, cH, cV, cD]:
                 features.append(coeff.mean())
@@ -437,29 +437,29 @@ class AdvancedTextureAnalyzer(TextureAnalyzer):
 
     def calculate_haralick_features(self, image):
         """
-        חישוב Haralick texture features
-        סט מקיף של 13 מאפייני מרקם
-        
+        Calculate Haralick texture features
+        A comprehensive set of 13 texture descriptors
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
             array: Haralick features
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # GLCM בכיוונים שונים
+        # GLCM at multiple distances and angles
         distances = [1, 2, 3]
         angles = [0, np.pi/4, np.pi/2, 3*np.pi/4]
 
         glcm = graycomatrix(gray, distances=distances, angles=angles,
                             levels=256, symmetric=True, normed=True)
 
-        # חילוץ כל המאפיינים
+        # Extract all properties
         features = []
         properties = ['contrast', 'dissimilarity', 'homogeneity',
                       'energy', 'correlation', 'ASM']
@@ -473,38 +473,38 @@ class AdvancedTextureAnalyzer(TextureAnalyzer):
 
 
 if __name__ == "__main__":
-    # בדיקה
+    # Test
     print("🧪 Testing Texture Analysis Module...")
 
-    # יצירת תמונות דמה
+    # Create dummy images
     test_image1 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
     test_image2 = test_image1.copy()
 
-    # הוספת רעש לתמונה השנייה
+    # Add noise to the second image
     noise = np.random.normal(0, 10, test_image2.shape).astype(np.int16)
     test_image2 = np.clip(test_image2.astype(
         np.int16) + noise, 0, 255).astype(np.uint8)
 
     analyzer = TextureAnalyzer()
 
-    # בדיקת LBP
+    # Test LBP
     lbp = analyzer.calculate_lbp(test_image1)
     print(f"✅ LBP calculated: shape={lbp.shape}")
 
-    # בדיקת GLCM
+    # Test GLCM
     glcm_props = analyzer.calculate_glcm(test_image1)
     print(f"✅ GLCM properties: {list(glcm_props.keys())}")
 
-    # בדיקת Gabor
+    # Test Gabor
     gabor_features = analyzer.calculate_gabor_features(test_image1)
     print(f"✅ Gabor features: shape={gabor_features.shape}")
 
-    # בדיקת השוואה מלאה
+    # Test full comparison
     is_match, score, details = analyzer.validate_texture_match(
         test_image1, test_image2)
     print(f"✅ Texture match validation: match={is_match}, score={score:.3f}")
 
-    # בדיקת Advanced Analyzer
+    # Test Advanced Analyzer
     adv_analyzer = AdvancedTextureAnalyzer()
     wavelet_features = adv_analyzer.calculate_wavelet_features(test_image1)
     print(f"✅ Wavelet features: shape={wavelet_features.shape}")

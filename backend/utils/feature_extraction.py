@@ -1,6 +1,6 @@
 """
 Feature Extraction Module - PyTorch Version
-חילוץ מאפיינים עמוקים מתמונות באמצעות PyTorch
+Deep feature extraction from images using PyTorch
 """
 
 import torch
@@ -14,12 +14,12 @@ from scipy.spatial.distance import cosine, euclidean
 
 class FeatureExtractor:
     """
-    מחלקה לחילוץ מאפיינים מתמונות באמצעות PyTorch
+    Class for extracting deep features from images using PyTorch
     """
 
     def __init__(self, model_name='resnet50'):
         """
-        אתחול המודל
+        Initialize the model
 
         Args:
             model_name: 'resnet50', 'vgg16', 'resnet18', 'efficientnet_b0'
@@ -28,9 +28,9 @@ class FeatureExtractor:
         self.device = torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self._load_model()
-        self.model.eval()  # מצב הערכה (לא אימון)
+        self.model.eval()  # evaluation mode (not training)
 
-        # הגדרת transformations
+        # Define image transformations
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -44,11 +44,11 @@ class FeatureExtractor:
             f"✅ PyTorch Feature Extractor loaded: {model_name} on {self.device}")
 
     def _load_model(self):
-        """טוען את המודל המאומן מראש"""
+        """Loads the pretrained model"""
         if self.model_name == 'resnet50':
             model = models.resnet50(
                 weights=models.ResNet50_Weights.IMAGENET1K_V1)
-            # מסיר את השכבה האחרונה (FC layer)
+            # Remove the final FC layer
             model = torch.nn.Sequential(*list(model.children())[:-1])
 
         elif self.model_name == 'resnet18':
@@ -58,13 +58,13 @@ class FeatureExtractor:
 
         elif self.model_name == 'vgg16':
             model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-            # רק את ה-features, בלי classifier
+            # Keep only features, without classifier
             model = model.features
 
         elif self.model_name == 'efficientnet_b0':
             model = models.efficientnet_b0(
                 weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
-            # מסיר את ה-classifier
+            # Remove the classifier
             model.classifier = torch.nn.Identity()
 
         else:
@@ -74,32 +74,32 @@ class FeatureExtractor:
 
     def extract_features(self, image):
         """
-        מחלץ מאפיינים מתמונה
+        Extracts features from an image
 
         Args:
-            image: תמונה (numpy array BGR או PIL Image)
+            image: image (numpy array BGR or PIL Image)
 
         Returns:
-            numpy array: וקטור מאפיינים
+            numpy array: feature vector
         """
-        # המרה ל-PIL אם צריך
+        # Convert to PIL if needed
         if isinstance(image, np.ndarray):
-            # OpenCV משתמש ב-BGR, צריך להמיר ל-RGB
+            # OpenCV uses BGR, need to convert to RGB
             if len(image.shape) == 3 and image.shape[2] == 3:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(image.astype('uint8'))
 
-        # הכנת התמונה
+        # Prepare the image
         img_tensor = self.transform(image).unsqueeze(0).to(self.device)
 
-        # חילוץ features
+        # Extract features
         with torch.no_grad():
             features = self.model(img_tensor)
 
-        # המרה ל-numpy
+        # Convert to numpy
         features = features.squeeze().cpu().numpy()
 
-        # נרמול
+        # Flatten if needed
         if features.ndim > 1:
             features = features.flatten()
 
@@ -107,24 +107,24 @@ class FeatureExtractor:
 
     def compare_features(self, features1, features2, method='cosine'):
         """
-        משווה שני וקטורי מאפיינים
+        Compares two feature vectors
 
         Args:
-            features1: וקטור ראשון
-            features2: וקטור שני
-            method: 'cosine' או 'euclidean'
+            features1: first vector
+            features2: second vector
+            method: 'cosine' or 'euclidean'
 
         Returns:
-            float: ציון דמיון (0-1)
+            float: similarity score (0-1)
         """
         if method == 'cosine':
-            # Cosine similarity: 1 = זהה, 0 = שונה לגמרי
+            # Cosine similarity: 1 = identical, 0 = completely different
             similarity = 1 - cosine(features1.flatten(), features2.flatten())
         elif method == 'euclidean':
-            # Euclidean distance: קטן יותר = דומה יותר
+            # Euclidean distance: smaller = more similar
             distance = euclidean(features1.flatten(), features2.flatten())
-            # נרמול לטווח 0-1
-            similarity = 1 / (1 + distance / 100)  # חלוקה ב-100 לנרמול
+            # Normalize to 0-1 range
+            similarity = 1 / (1 + distance / 100)
         else:
             raise ValueError(f"Unknown method: {method}")
 
@@ -132,12 +132,12 @@ class FeatureExtractor:
 
     def validate(self, image1, image2, threshold=0.75):
         """
-        בדיקה מהירה של התאמה בין שתי תמונות
+        Quick check of similarity between two images
 
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
-            threshold: סף דמיון
+            image1: first image
+            image2: second image
+            threshold: similarity threshold
 
         Returns:
             tuple: (is_match, confidence)
@@ -158,15 +158,15 @@ class FeatureExtractor:
 
 class MultiModelFeatureExtractor:
     """
-    מחלקה שמשתמשת במספר מודלים ומשלבת את התוצאות
+    Class that uses multiple models and combines their results
     """
 
     def __init__(self, models=['resnet50', 'vgg16']):
         """
-        אתחול מספר מודלים
+        Initialize multiple models
 
         Args:
-            models: רשימת שמות מודלים
+            models: list of model names
         """
         self.extractors = {}
         for model_name in models:
@@ -183,12 +183,12 @@ class MultiModelFeatureExtractor:
 
     def validate(self, image1, image2, threshold=0.75):
         """
-        בדיקה משולבת עם מספר מודלים
+        Combined validation using multiple models
 
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
-            threshold: סף דמיון
+            image1: first image
+            image2: second image
+            threshold: similarity threshold
 
         Returns:
             tuple: (is_match, confidence)
@@ -205,7 +205,7 @@ class MultiModelFeatureExtractor:
         if not confidences:
             return False, 0.0
 
-        # ממוצע של כל המודלים
+        # Average across all models
         avg_confidence = np.mean(confidences)
         is_match = avg_confidence >= threshold
 

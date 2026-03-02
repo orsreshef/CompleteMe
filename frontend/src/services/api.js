@@ -64,15 +64,14 @@ class ApiService {
   }
 
   /**
-   * Validate answer
+   * Validate answer — placements is [{zone_index, piece}, ...]
    */
-  async validateAnswer(gameId, selectedIndex, selectedPiece) {
+  async validateAnswer(gameId, placements) {
     return this.request('/puzzle/validate', {
       method: 'POST',
       body: JSON.stringify({
         game_id: gameId,
-        selected_index: selectedIndex,
-        selected_piece: selectedPiece,
+        placements,
       }),
     });
   }

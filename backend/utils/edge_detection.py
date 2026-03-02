@@ -1,6 +1,6 @@
 """
 Edge Detection and Analysis Module
-זיהוי וניתוח קצוות מתקדם להשוואת תמונות
+Advanced edge detection and analysis for image comparison
 """
 
 import numpy as np
@@ -10,32 +10,32 @@ from scipy.spatial.distance import directed_hausdorff
 
 class EdgeAnalyzer:
     """
-    מחלקה לזיהוי וניתוח קצוות בתמונות
+    Class for detecting and analyzing edges in images
     """
 
     def __init__(self):
-        """אתחול מנתח הקצוות"""
+        """Initialize the edge analyzer"""
         print("✅ Edge Analyzer initialized")
 
     def detect_edges_canny(self, image, low_threshold=50, high_threshold=150):
         """
-        זיהוי קצוות באמצעות Canny Edge Detection
-        
+        Detect edges using Canny Edge Detection
+
         Args:
-            image: תמונה
-            low_threshold: סף תחתון
-            high_threshold: סף עליון
-        
+            image: image
+            low_threshold: lower threshold
+            high_threshold: upper threshold
+
         Returns:
-            תמונת קצוות (binary)
+            Edge image (binary)
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # החלקה לפני זיהוי קצוות
+        # Smooth before edge detection
         blurred = cv2.GaussianBlur(gray, (5, 5), 1.4)
 
         # Canny edge detection
@@ -45,57 +45,57 @@ class EdgeAnalyzer:
 
     def detect_edges_sobel(self, image):
         """
-        זיהוי קצוות באמצעות Sobel operator
-        
+        Detect edges using Sobel operator
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            magnitude של הגרדיאנט
+            Gradient magnitude
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # Sobel בכיוון X
+        # Sobel in X direction
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
 
-        # Sobel בכיוון Y
+        # Sobel in Y direction
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
 
-        # חישוב magnitude
+        # Calculate magnitude
         magnitude = np.sqrt(sobelx**2 + sobely**2)
 
-        # נרמול ל-0-255
+        # Normalize to 0-255
         magnitude = (magnitude / magnitude.max() * 255).astype(np.uint8)
 
         return magnitude
 
     def detect_edges_laplacian(self, image):
         """
-        זיהוי קצוות באמצעות Laplacian
-        
+        Detect edges using Laplacian
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            תמונת קצוות
+            Edge image
         """
-        # המרה לגווני אפור
+        # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        # החלקה
+        # Smooth
         blurred = cv2.GaussianBlur(gray, (3, 3), 0)
 
         # Laplacian
         laplacian = cv2.Laplacian(blurred, cv2.CV_64F)
 
-        # המרה לערכים מוחלטים ונרמול
+        # Convert to absolute values and normalize
         laplacian = np.abs(laplacian)
         laplacian = (laplacian / laplacian.max() * 255).astype(np.uint8)
 
@@ -103,23 +103,23 @@ class EdgeAnalyzer:
 
     def calculate_edge_histogram(self, edges, bins=8):
         """
-        מחשב היסטוגרמת כיווני קצוות
-        
+        Calculate edge orientation histogram
+
         Args:
-            edges: תמונת קצוות
-            bins: מספר bins להיסטוגרמה
-        
+            edges: edge image
+            bins: number of histogram bins
+
         Returns:
-            היסטוגרמה של כיווני הקצוות
+            Histogram of edge orientations
         """
-        # חישוב gradient
+        # Calculate gradient
         sobelx = cv2.Sobel(edges, cv2.CV_64F, 1, 0, ksize=3)
         sobely = cv2.Sobel(edges, cv2.CV_64F, 0, 1, ksize=3)
 
-        # חישוב כיוונים
+        # Calculate orientations
         angles = np.arctan2(sobely, sobelx)
 
-        # היסטוגרמה
+        # Histogram
         hist, _ = np.histogram(
             angles[edges > 0], bins=bins, range=(-np.pi, np.pi), density=True)
 
@@ -127,30 +127,30 @@ class EdgeAnalyzer:
 
     def analyze_edge_continuity(self, puzzle_image, selected_patch, position):
         """
-        בודק אם הקצוות של החתיכה מתחברים לקצוות התמונה
-        
+        Checks if the edges of the piece connect to the edges of the image
+
         Args:
-            puzzle_image: תמונת הפאזל (עם החור השחור)
-            selected_patch: החתיכה שנבחרה
-            position: (x, y, w, h) מיקום החתיכה
-        
+            puzzle_image: puzzle image (with the black hole)
+            selected_patch: the selected piece
+            position: (x, y, w, h) piece position
+
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         x, y, w, h = position
 
-        # זיהוי קצוות בתמונה הראשית
+        # Detect edges in the main image
         edges_puzzle = self.detect_edges_canny(puzzle_image)
 
-        # זיהוי קצוות בחתיכה
+        # Detect edges in the piece
         edges_patch = self.detect_edges_canny(selected_patch)
 
-        # בדיקת התאמה בגבולות
-        border_width = 5  # רוחב הגבול לבדיקה
+        # Check boundary continuity
+        border_width = 5
 
         continuity_scores = []
 
-        # בדיקת גבול עליון
+        # Check top boundary
         if y >= border_width:
             border_puzzle_top = edges_puzzle[y-border_width:y, x:x+w]
             border_patch_top = edges_patch[0:border_width, :]
@@ -159,7 +159,7 @@ class EdgeAnalyzer:
                     max(np.sum(border_puzzle_top | border_patch_top), 1)
                 continuity_scores.append(score)
 
-        # בדיקת גבול תחתון
+        # Check bottom boundary
         if y + h + border_width < edges_puzzle.shape[0]:
             border_puzzle_bottom = edges_puzzle[y+h:y+h+border_width, x:x+w]
             border_patch_bottom = edges_patch[-border_width:, :]
@@ -168,7 +168,7 @@ class EdgeAnalyzer:
                     max(np.sum(border_puzzle_bottom | border_patch_bottom), 1)
                 continuity_scores.append(score)
 
-        # בדיקת גבול שמאלי
+        # Check left boundary
         if x >= border_width:
             border_puzzle_left = edges_puzzle[y:y+h, x-border_width:x]
             border_patch_left = edges_patch[:, 0:border_width]
@@ -177,7 +177,7 @@ class EdgeAnalyzer:
                     max(np.sum(border_puzzle_left | border_patch_left), 1)
                 continuity_scores.append(score)
 
-        # בדיקת גבול ימני
+        # Check right boundary
         if x + w + border_width < edges_puzzle.shape[1]:
             border_puzzle_right = edges_puzzle[y:y+h, x+w:x+w+border_width]
             border_patch_right = edges_patch[:, -border_width:]
@@ -186,7 +186,7 @@ class EdgeAnalyzer:
                     max(np.sum(border_puzzle_right | border_patch_right), 1)
                 continuity_scores.append(score)
 
-        # ממוצע הציונים
+        # Average of scores
         if continuity_scores:
             return np.mean(continuity_scores)
         else:
@@ -194,43 +194,43 @@ class EdgeAnalyzer:
 
     def compare_edge_histograms(self, hist1, hist2):
         """
-        משווה היסטוגרמות של כיווני קצוות
-        
+        Compare edge orientation histograms
+
         Args:
-            hist1: היסטוגרמה ראשונה
-            hist2: היסטוגרמה שנייה
-        
+            hist1: first histogram
+            hist2: second histogram
+
         Returns:
-            ציון דמיון (0-1)
+            Similarity score (0-1)
         """
         # Chi-square distance
         chi_square = np.sum((hist1 - hist2) ** 2 / (hist1 + hist2 + 1e-10))
 
-        # המרה לציון דמיון
+        # Convert to similarity score
         similarity = 1 / (1 + chi_square)
 
         return similarity
 
     def calculate_hausdorff_distance(self, edges1, edges2):
         """
-        מחשב Hausdorff distance בין שתי קבוצות קצוות
-        מדד זה מודד את המרחק המקסימלי המינימלי בין נקודות
-        
+        Calculate Hausdorff distance between two edge sets
+        This metric measures the maximum minimum distance between points
+
         Args:
-            edges1: קצוות ראשונים
-            edges2: קצוות שניים
-        
+            edges1: first edge set
+            edges2: second edge set
+
         Returns:
-            Hausdorff distance (ערך נמוך = דומה יותר)
+            Hausdorff distance (lower = more similar)
         """
-        # מציאת קואורדינטות של פיקסלי הקצוות
+        # Find coordinates of edge pixels
         points1 = np.column_stack(np.where(edges1 > 0))
         points2 = np.column_stack(np.where(edges2 > 0))
 
         if len(points1) == 0 or len(points2) == 0:
             return float('inf')
 
-        # חישוב Hausdorff distance
+        # Calculate Hausdorff distance
         hausdorff_dist = max(
             directed_hausdorff(points1, points2)[0],
             directed_hausdorff(points2, points1)[0]
@@ -240,13 +240,13 @@ class EdgeAnalyzer:
 
     def analyze_edge_density(self, image):
         """
-        מנתח את צפיפות הקצוות בתמונה
-        
+        Analyzes edge density in an image
+
         Args:
-            image: תמונה
-        
+            image: image
+
         Returns:
-            dict: מדדי צפיפות קצוות
+            dict: edge density metrics
         """
         edges_canny = self.detect_edges_canny(image)
         edges_sobel = self.detect_edges_sobel(image)
@@ -262,51 +262,51 @@ class EdgeAnalyzer:
 
     def validate_edge_match(self, image1, image2, threshold=0.65):
         """
-        בדיקה מקיפה של התאמת קצוות בין שתי תמונות
-        
+        Comprehensive check of edge match between two images
+
         Args:
-            image1: תמונה ראשונה
-            image2: תמונה שנייה
-            threshold: סף דמיון
-        
+            image1: first image
+            image2: second image
+            threshold: similarity threshold
+
         Returns:
             tuple: (is_match, score, details)
         """
         try:
-            # 1. זיהוי קצוות
+            # 1. Edge detection
             edges1_canny = self.detect_edges_canny(image1)
             edges2_canny = self.detect_edges_canny(image2)
 
-            # 2. השוואת צפיפות קצוות
+            # 2. Edge density comparison
             density1 = np.count_nonzero(edges1_canny) / edges1_canny.size
             density2 = np.count_nonzero(edges2_canny) / edges2_canny.size
             density_similarity = 1 - abs(density1 - density2)
 
-            # 3. השוואת היסטוגרמות כיוונים
+            # 3. Orientation histogram comparison
             hist1 = self.calculate_edge_histogram(edges1_canny)
             hist2 = self.calculate_edge_histogram(edges2_canny)
             histogram_similarity = self.compare_edge_histograms(hist1, hist2)
 
-            # 4. Hausdorff distance (אם יש מספיק קצוות)
-            hausdorff_similarity = 0.5  # ברירת מחדל
+            # 4. Hausdorff distance (if enough edges exist)
+            hausdorff_similarity = 0.5  # default
             if density1 > 0.01 and density2 > 0.01:
-                # שינוי גודל לחישוב מהיר יותר
+                # Resize for faster calculation
                 edges1_small = cv2.resize(edges1_canny, (50, 50))
                 edges2_small = cv2.resize(edges2_canny, (50, 50))
 
                 hausdorff_dist = self.calculate_hausdorff_distance(
                     edges1_small, edges2_small)
-                max_dist = 50 * np.sqrt(2)  # מרחק מקסימלי בתמונה 50x50
+                max_dist = 50 * np.sqrt(2)  # maximum distance in a 50x50 image
                 hausdorff_similarity = 1 - min(hausdorff_dist / max_dist, 1)
 
-            # 5. השוואת Sobel magnitude
+            # 5. Sobel magnitude comparison
             sobel1 = self.detect_edges_sobel(image1)
             sobel2 = self.detect_edges_sobel(image2)
             sobel_correlation = np.corrcoef(
                 sobel1.ravel(), sobel2.ravel())[0, 1]
-            sobel_similarity = max(0, sobel_correlation)  # מנרמל ל-0-1
+            sobel_similarity = max(0, sobel_correlation)  # Normalize to 0-1
 
-            # ציון משוקלל
+            # Weighted score
             weights = {
                 'density': 0.20,
                 'histogram': 0.30,
@@ -339,14 +339,14 @@ class EdgeAnalyzer:
 
     def visualize_edges(self, image, method='canny'):
         """
-        מציג את הקצוות שזוהו
-        
+        Returns the detected edges as an image
+
         Args:
-            image: תמונה
-            method: שיטת זיהוי - 'canny', 'sobel', 'laplacian'
-        
+            image: image
+            method: detection method - 'canny', 'sobel', 'laplacian'
+
         Returns:
-            תמונת קצוות
+            Edge image
         """
         if method == 'canny':
             return self.detect_edges_canny(image)
@@ -359,35 +359,35 @@ class EdgeAnalyzer:
 
 
 if __name__ == "__main__":
-    # בדיקה
+    # Test
     print("🧪 Testing Edge Detection Module...")
 
-    # יצירת תמונת דמה עם קצוות
+    # Create a dummy image with edges
     test_image = np.zeros((100, 100, 3), dtype=np.uint8)
     cv2.rectangle(test_image, (20, 20), (80, 80), (255, 255, 255), -1)
     cv2.circle(test_image, (50, 50), 15, (0, 0, 0), -1)
 
     analyzer = EdgeAnalyzer()
 
-    # בדיקת Canny
+    # Test Canny
     edges_canny = analyzer.detect_edges_canny(test_image)
     print(
         f"✅ Canny edges detected: {np.count_nonzero(edges_canny)} edge pixels")
 
-    # בדיקת Sobel
+    # Test Sobel
     edges_sobel = analyzer.detect_edges_sobel(test_image)
     print(
         f"✅ Sobel edges detected: magnitude range [{edges_sobel.min()}, {edges_sobel.max()}]")
 
-    # בדיקת histogram
+    # Test histogram
     hist = analyzer.calculate_edge_histogram(edges_canny)
     print(f"✅ Edge histogram calculated: shape={hist.shape}")
 
-    # בדיקת צפיפות
+    # Test density
     density = analyzer.analyze_edge_density(test_image)
     print(f"✅ Edge density: {density['average_density']:.3f}")
 
-    # בדיקת השוואה
+    # Test comparison
     test_image2 = test_image.copy()
     test_image2 = cv2.GaussianBlur(test_image2, (5, 5), 0)
 
