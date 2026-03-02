@@ -20,6 +20,8 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
+      // credentials:'include' sends/receives HTTP-only JWT cookies automatically
+      credentials: 'include',
     };
 
     const config = { ...defaultOptions, ...options };
@@ -105,6 +107,49 @@ class ApiService {
         game_id: gameId,
       }),
     });
+  }
+
+  // ── Auth ────────────────────────────────────────────────────────────────
+
+  /**
+   * Register a new account
+   */
+  async register(username, email, password) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password }),
+    });
+  }
+
+  /**
+   * Log in — sets HTTP-only JWT cookies via the browser
+   */
+  async login(email, password) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  /**
+   * Log out — clears JWT cookies
+   */
+  async logout() {
+    return this.request('/auth/logout', { method: 'POST' });
+  }
+
+  /**
+   * Get the currently authenticated user's profile
+   */
+  async getMe() {
+    return this.request('/auth/me');
+  }
+
+  /**
+   * Refresh the access token using the refresh cookie
+   */
+  async refreshToken() {
+    return this.request('/auth/refresh', { method: 'POST' });
   }
 }
 

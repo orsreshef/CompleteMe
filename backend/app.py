@@ -14,10 +14,12 @@ import traceback
 from PIL import Image
 
 from config import get_config, Config
+from extensions import db, jwt, bcrypt, limiter
 from models.puzzle_generator import PuzzleGenerator
 from models.image_processor import ImageProcessor
 from models.cv_validator import CVValidator
 from utils.unsplash_api import UnsplashAPI
+from routes.auth import auth_bp
 
 
 # Initialize Flask app
@@ -27,17 +29,35 @@ app = Flask(__name__)
 env = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(get_config(env))
 
-# Enable CORS
+# Initialize extensions
+db.init_app(app)
+jwt.init_app(app)
+bcrypt.init_app(app)
+limiter.init_app(app)
+
+# Enable CORS — credentials=True required for HTTP-only JWT cookies
 CORS(app, resources={
     r"/api/*": {
         "origins": app.config['CORS_ORIGINS'],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
     }
 })
 
+# Register authentication blueprint
+app.register_blueprint(auth_bp)
+
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Create database tables if they don't exist yet
+with app.app_context():
+    # Import models so SQLAlchemy knows about them before create_all
+    from models.user import User  # noqa: F401
+    from models.game_history import GameHistory  # noqa: F401
+    db.create_all()
+    print("✅ Database tables ready")
 
 # Initialize components
 puzzle_generator = PuzzleGenerator()
@@ -295,7 +315,10 @@ def create_puzzle():
             'num_regions': puzzle_data['num_regions'],
             'difficulty': difficulty,
             'attempts': 0,
-            'options': puzzle_data['options']
+            'options': puzzle_data['options'],
+            'image_url': data.get('image_url', ''),
+            'grid_size': puzzle_data.get('num_pieces', 0),
+            'difficulty_name': puzzle_data.get('difficulty_name', '')
         }
 
         # Convert images to base64 for response
@@ -468,6 +491,34 @@ def validate_answer():
             total_confidence += confidence
 
         overall_confidence = total_confidence / len(placements)
+
+        # Save game result to history if a user is logged in
+        if all_correct:
+            try:
+                from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+                verify_jwt_in_request(optional=True)
+                user_id = get_jwt_identity()
+                if user_id:
+                    from models.user import User
+                    from models.game_history import GameHistory
+                    score_earned = max(10, 100 - (game_data['attempts'] - 1) * 10)
+                    history_entry = GameHistory(
+                        user_id=int(user_id),
+                        image_url=game_data.get('image_url', ''),
+                        difficulty_level=game_data.get('difficulty_name', str(game_data['difficulty'])),
+                        grid_size=game_data.get('grid_size', 0),
+                        num_missing_pieces=game_data['num_regions'],
+                        success=True,
+                        score_earned=score_earned
+                    )
+                    db.session.add(history_entry)
+                    user = User.query.get(int(user_id))
+                    if user:
+                        user.total_score += score_earned
+                    db.session.commit()
+                    print(f"✅ Game saved to history for user {user_id} (+{score_earned} pts)")
+            except Exception as hist_err:
+                print(f"⚠️ Could not save game history: {hist_err}")
 
         response = {
             'is_correct': all_correct,

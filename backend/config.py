@@ -4,6 +4,7 @@ Contains all configuration settings for the application
 """
 
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -55,6 +56,22 @@ class Config:
     # CORS settings
     CORS_ORIGINS = os.getenv(
         'CORS_ORIGINS', 'http://localhost:3000').split(',')
+
+    # Database settings
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        'DATABASE_URL',
+        'postgresql://puzzle_user:puzzle_password@localhost/puzzle_game_db'
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # JWT settings
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
+    JWT_TOKEN_LOCATION = ['cookies']
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
+    JWT_COOKIE_SECURE = False       # Set True in production (HTTPS only)
+    JWT_COOKIE_SAMESITE = 'Lax'
+    JWT_COOKIE_CSRF_PROTECT = False  # Can enable CSRF tokens in production
 
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')

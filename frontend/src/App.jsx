@@ -7,18 +7,30 @@ import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import ImageSelector from './components/ImageSelector/ImageSelector';
 import GameBoard from './components/GameBoard/GameBoard';
 import LoadingScreen from './components/LoadingScreen/LoadingScreen';
+import LoginScreen from './components/LoginScreen/LoginScreen';
+import SignupScreen from './components/SignupScreen/SignupScreen';
 import api from './services/api';
 
 function App() {
-  const [gameState, setGameState] = useState('welcome'); // 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
+  // 'login', 'signup', 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
+  const [gameState, setGameState] = useState('login');
+  const [user, setUser] = useState(null);
   const [difficulty, setDifficulty] = useState(1);
   const [regionCount, setRegionCount] = useState(1);
   const [gameData, setGameData] = useState(null);
   const [config, setConfig] = useState(null);
 
   useEffect(() => {
-    // Load configuration on mount
     loadConfig();
+    // Try to restore session from existing JWT cookie
+    api.getMe()
+      .then(data => {
+        setUser(data.user);
+        setGameState('welcome');
+      })
+      .catch(() => {
+        // No valid session — stay on login screen
+      });
   }, []);
 
   const loadConfig = async () => {
@@ -70,6 +82,27 @@ function App() {
     }
   };
 
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setGameState('welcome');
+  };
+
+  const handleGuest = () => {
+    setUser(null);
+    setGameState('welcome');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      console.warn('Logout request failed, clearing session anyway:', err);
+    }
+    setUser(null);
+    setGameData(null);
+    setGameState('login');
+  };
+
   const restartGame = () => {
     setGameState('welcome');
     setGameData(null);
@@ -106,10 +139,27 @@ function App() {
         theme="light"
       />
 
+      {gameState === 'login' && (
+        <LoginScreen
+          onLogin={handleLogin}
+          onGuest={handleGuest}
+          onGoSignup={() => setGameState('signup')}
+        />
+      )}
+
+      {gameState === 'signup' && (
+        <SignupScreen
+          onLogin={handleLogin}
+          onGoLogin={() => setGameState('login')}
+        />
+      )}
+
       {gameState === 'welcome' && (
         <WelcomeScreen
           onStartGame={handleSelectDifficulty}
           difficultyLevels={config?.difficulty_levels}
+          user={user}
+          onLogout={handleLogout}
         />
       )}
 
