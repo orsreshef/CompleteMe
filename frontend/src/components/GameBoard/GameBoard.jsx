@@ -4,8 +4,8 @@ import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
 import './GameBoard.css';
 
-import ValidationModal from './ValidationModal';
-import api from '../services/api';
+import ValidationModal from '../ValidationModal/ValidationModal';
+import api from '../../services/api';
 
 const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
   // placements: { zoneIndex (string) -> optionIndex (number) }

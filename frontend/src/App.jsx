@@ -3,10 +3,10 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-import WelcomeScreen from './components/WelcomeScreen';
-import ImageSelector from './components/ImageSelector';
-import GameBoard from './components/GameBoard';
-import LoadingScreen from './components/LoadingScreen';
+import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
+import ImageSelector from './components/ImageSelector/ImageSelector';
+import GameBoard from './components/GameBoard/GameBoard';
+import LoadingScreen from './components/LoadingScreen/LoadingScreen';
 import api from './services/api';
 
 function App() {
