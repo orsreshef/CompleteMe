@@ -5,7 +5,7 @@ import './ImageSelector.css';
 const CATEGORIES = [
   { id: 'animals',     label: 'Animals',     emoji: '🐾', color: '#10b981' },
   { id: 'space',       label: 'Space',        emoji: '🚀', color: '#6366f1' },
-  { id: 'dinosaurs',   label: 'Dinosaurs',    emoji: '🦕', color: '#84cc16' },
+  { id: 'candy',       label: 'Candy',        emoji: '🍬', color: '#84cc16' },
   { id: 'ocean',       label: 'Ocean',        emoji: '🐠', color: '#06b6d4' },
   { id: 'flowers',     label: 'Flowers',      emoji: '🌸', color: '#ec4899' },
   { id: 'trains',      label: 'Trains',       emoji: '🚂', color: '#f59e0b' },

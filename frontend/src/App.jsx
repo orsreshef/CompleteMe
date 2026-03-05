@@ -14,6 +14,7 @@ import api from './services/api';
 function App() {
   // 'login', 'signup', 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
   const [gameState, setGameState] = useState('login');
+  const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState(null);
   const [difficulty, setDifficulty] = useState(1);
   const [regionCount, setRegionCount] = useState(1);
@@ -29,7 +30,14 @@ function App() {
         setGameState('welcome');
       })
       .catch(() => {
-        // No valid session — stay on login screen
+        // No valid JWT — check if the user was in guest mode before the refresh
+        if (sessionStorage.getItem('guestMode')) {
+          setGameState('welcome');
+        }
+        // else stay on login screen
+      })
+      .finally(() => {
+        setInitializing(false);
       });
   }, []);
 
@@ -88,6 +96,7 @@ function App() {
   };
 
   const handleGuest = () => {
+    sessionStorage.setItem('guestMode', '1');
     setUser(null);
     setGameState('welcome');
   };
@@ -98,6 +107,7 @@ function App() {
     } catch (err) {
       console.warn('Logout request failed, clearing session anyway:', err);
     }
+    sessionStorage.removeItem('guestMode');
     setUser(null);
     setGameData(null);
     setGameState('login');
@@ -123,6 +133,9 @@ function App() {
       setGameData(null);
     }, 5000);
   };
+
+  // Wait for session restore to complete before rendering any screen
+  if (initializing) return null;
 
   return (
     <div className="App">
