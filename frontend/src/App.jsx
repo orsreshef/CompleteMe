@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Confetti from 'react-confetti';
 import './App.css';
 
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
@@ -22,6 +23,7 @@ function App() {
   const [gameData, setGameData] = useState(null);
   const [config, setConfig] = useState(null);
   const [lastScore, setLastScore] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -123,6 +125,7 @@ function App() {
 
   const handleGameComplete = async (scoreEarned = 0) => {
     setLastScore(scoreEarned);
+    setShowConfetti(true);
     navigate('/finished');
 
     toast.success('🎉 Congratulations! You solved the puzzle!', {
@@ -231,6 +234,15 @@ function App() {
           path="/finished"
           element={
             <div className="completion-screen fade-in">
+              {showConfetti && (
+                <Confetti
+                  width={window.innerWidth}
+                  height={window.innerHeight}
+                  recycle={false}
+                  numberOfPieces={500}
+                  onConfettiComplete={() => setShowConfetti(false)}
+                />
+              )}
               <div className="completion-content">
                 <div className="completion-icon">🎉</div>
                 <h1>Amazing Job!</h1>

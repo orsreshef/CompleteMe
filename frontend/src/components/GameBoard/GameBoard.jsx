@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
 import './GameBoard.css';
 
@@ -16,7 +15,6 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
   const [validationResult, setValidationResult] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [showConfetti, setShowConfetti] = useState(false);
 
   const {
     puzzle_image,
@@ -104,8 +102,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
       setShowModal(true);
 
       if (result.is_correct) {
-        setShowConfetti(true);
-        setTimeout(() => onComplete(result.score_earned ?? 0), 3000);
+        setTimeout(() => onComplete(result.score_earned ?? 0), 1500);
       }
     } catch (error) {
       console.error('Validation error:', error);
@@ -154,15 +151,6 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
 
   return (
     <div className="game-board">
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={500}
-        />
-      )}
-
       <div className="game-container">
         {/* Header */}
         <motion.div
