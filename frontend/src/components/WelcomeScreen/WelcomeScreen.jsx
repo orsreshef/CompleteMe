@@ -60,19 +60,26 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout }) => {
 
   return (
     <div className="welcome-screen">
-      {/* User bar — shown when logged in */}
-      {user && (
-        <div className="user-bar">
-          <div className="user-bar-info">
-            <span className="user-bar-avatar">{AVATARS[user.avatar_id] || '🧩'}</span>
-            <span className="user-bar-name">{user.username}</span>
-            <span className="user-bar-score">Score: {user.total_score ?? 0}</span>
-          </div>
-          <button className="user-bar-logout" onClick={onLogout}>
-            Sign Out
-          </button>
+      {/* User bar — always visible (logged in or guest) */}
+      <div className="user-bar">
+        <div className="user-bar-info">
+          {user ? (
+            <>
+              <span className="user-bar-avatar">{AVATARS[user.avatar_id] || '🧩'}</span>
+              <span className="user-bar-name">{user.username}</span>
+              <span className="user-bar-score">Score: {user.total_score ?? 0}</span>
+            </>
+          ) : (
+            <>
+              <span className="user-bar-avatar">🧑</span>
+              <span className="user-bar-name">Guest</span>
+            </>
+          )}
         </div>
-      )}
+        <button className="user-bar-logout" onClick={onLogout}>
+          {user ? 'Sign Out' : 'Sign In'}
+        </button>
+      </div>
 
       <motion.div
         className="welcome-container"
