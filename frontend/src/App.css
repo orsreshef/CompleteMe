@@ -63,6 +63,27 @@
   transform: translateY(0);
 }
 
+/* Score earned badge on completion screen */
+.score-earned-badge {
+  display: block;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Fredoka', sans-serif;
+  padding: 0.4rem 1.4rem;
+  border-radius: 999px;
+  margin-bottom: var(--spacing-lg);
+  letter-spacing: 1px;
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .completion-icon {

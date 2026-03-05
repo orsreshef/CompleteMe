@@ -20,6 +20,7 @@ function App() {
   const [regionCount, setRegionCount] = useState(1);
   const [gameData, setGameData] = useState(null);
   const [config, setConfig] = useState(null);
+  const [lastScore, setLastScore] = useState(0);
 
   useEffect(() => {
     loadConfig();
@@ -118,16 +119,25 @@ function App() {
     setGameData(null);
   };
 
-  const handleGameComplete = () => {
+  const handleGameComplete = async (scoreEarned = 0) => {
+    setLastScore(scoreEarned);
     setGameState('finished');
-    
-    // Show success message
+
     toast.success('🎉 Congratulations! You solved the puzzle!', {
       position: 'top-center',
       autoClose: 5000
     });
 
-    // Auto-return to welcome screen after celebration
+    // Refresh user profile so the score updates immediately in the UI
+    if (user) {
+      try {
+        const data = await api.getMe();
+        setUser(data.user);
+      } catch {
+        // Silent — score will still be correct on next page load
+      }
+    }
+
     setTimeout(() => {
       setGameState('welcome');
       setGameData(null);
@@ -205,7 +215,12 @@ function App() {
             <div className="completion-icon">🎉</div>
             <h1>Amazing Job!</h1>
             <p>You solved the puzzle!</p>
-            <button 
+            {user && lastScore > 0 && (
+              <div className="score-earned-badge">
+                +{lastScore} pts
+              </div>
+            )}
+            <button
               className="btn-primary"
               onClick={restartGame}
             >

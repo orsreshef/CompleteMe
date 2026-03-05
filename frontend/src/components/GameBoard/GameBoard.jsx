@@ -105,7 +105,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
 
       if (result.is_correct) {
         setShowConfetti(true);
-        setTimeout(() => onComplete(), 3000);
+        setTimeout(() => onComplete(result.score_earned ?? 0), 3000);
       }
     } catch (error) {
       console.error('Validation error:', error);

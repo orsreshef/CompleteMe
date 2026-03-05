@@ -520,11 +520,14 @@ def validate_answer():
             except Exception as hist_err:
                 print(f"⚠️ Could not save game history: {hist_err}")
 
+        score_earned = max(10, 100 - (game_data['attempts'] - 1) * 10) if all_correct else 0
+
         response = {
             'is_correct': all_correct,
             'confidence': float(overall_confidence),
             'region_results': region_results,
-            'attempt_number': int(game_data['attempts'])
+            'attempt_number': int(game_data['attempts']),
+            'score_earned': score_earned,
         }
 
         if all_correct:
