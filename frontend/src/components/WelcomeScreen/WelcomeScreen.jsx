@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import './WelcomeScreen.css';
 
@@ -18,7 +19,9 @@ const REGION_EMOJIS = {
   4: '⬛⬛⬛⬛',
 };
 
-const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
+const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
+
+const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout }) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
   const [selectedRegions, setSelectedRegions] = useState(null);
 
@@ -57,6 +60,20 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
 
   return (
     <div className="welcome-screen">
+      {/* User bar — shown when logged in */}
+      {user && (
+        <div className="user-bar">
+          <div className="user-bar-info">
+            <span className="user-bar-avatar">{AVATARS[user.avatar_id] || '🧩'}</span>
+            <span className="user-bar-name">{user.username}</span>
+            <span className="user-bar-score">Score: {user.total_score ?? 0}</span>
+          </div>
+          <button className="user-bar-logout" onClick={onLogout}>
+            Sign Out
+          </button>
+        </div>
+      )}
+
       <motion.div
         className="welcome-container"
         initial={{ opacity: 0, y: 50 }}
@@ -71,8 +88,8 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
           transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.2 }}
         >
           <div className="puzzle-icon">🧩</div>
-          <h1 className="welcome-title">AI Puzzle Game</h1>
-          <p className="welcome-subtitle">Find the missing pieces using your observation skills!</p>
+          <h1 className="welcome-title">Complete Me</h1>
+          <p className="welcome-subtitle">Interactive Educational Puzzles utilizing CV &amp; Deep Learning</p>
         </motion.div>
 
         {/* Step 1 — Difficulty */}
@@ -82,13 +99,11 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <h2 className="difficulty-title">
-            Step 1 — Choose Your Level
-          </h2>
+          <h2 className="difficulty-title">Step 1 — Choose Your Level</h2>
 
           <div className="difficulty-grid">
             {Object.entries(levels).map(([level, info], index) => {
-              const lvl = parseInt(level);
+              const lvl = Number.parseInt(level, 10);
               const isSelected = selectedDifficulty === lvl;
               return (
                 <motion.button
@@ -121,7 +136,7 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
           </div>
         </motion.div>
 
-        {/* Step 2 — Region count (appears after difficulty is chosen) */}
+        {/* Step 2 — Region count */}
         <AnimatePresence>
           {selectedDifficulty && (
             <motion.div
@@ -131,9 +146,7 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
               exit={{ opacity: 0, y: -20, height: 0 }}
               transition={{ duration: 0.35 }}
             >
-              <h2 className="difficulty-title">
-                Step 2 — How many missing pieces?
-              </h2>
+              <h2 className="difficulty-title">Step 2 — How many missing pieces?</h2>
 
               <div className="region-grid">
                 {Array.from({ length: maxRegions }, (_, i) => i + 1).map((count, index) => {
@@ -211,7 +224,7 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
           </div>
           <div className="feature-item">
             <span className="feature-icon">🧠</span>
-            <span className="feature-text">Educational & Fun</span>
+            <span className="feature-text">Educational &amp; Fun</span>
           </div>
         </motion.div>
 
@@ -226,6 +239,19 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels }) => {
       </motion.div>
     </div>
   );
+};
+
+WelcomeScreen.propTypes = {
+  onStartGame:      PropTypes.func.isRequired,
+  difficultyLevels: PropTypes.object,
+  user:             PropTypes.object,
+  onLogout:         PropTypes.func,
+};
+
+WelcomeScreen.defaultProps = {
+  difficultyLevels: null,
+  user:             null,
+  onLogout:         () => {},
 };
 
 export default WelcomeScreen;

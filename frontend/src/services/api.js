@@ -114,10 +114,10 @@ class ApiService {
   /**
    * Register a new account
    */
-  async register(username, email, password) {
+  async register(username, email, password, avatarId = 1) {
     return this.request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, email, password, avatar_id: avatarId }),
     });
   }
 

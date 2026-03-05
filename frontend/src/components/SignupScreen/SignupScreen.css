@@ -1,3 +1,80 @@
-/* SignupScreen shares all base auth styles from LoginScreen.css.
-   Add any signup-specific overrides here if needed in the future. */
 @import '../LoginScreen/LoginScreen.css';
+
+/* ── Avatar picker ────────────────────────────────────────────────────────── */
+.avatar-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.avatar-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.avatar-grid {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.avatar-option {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.avatar-option:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #eef2ff;
+}
+
+.avatar-option.avatar-selected {
+  border-color: var(--primary);
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.avatar-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.avatar-check {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+/* ── Side-by-side form rows on the signup card ────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 860px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

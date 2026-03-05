@@ -51,7 +51,10 @@ def register():
         return jsonify({'error': 'This username is already taken.'}), 409
 
     # Create user
-    user = User(username=username, email=email)
+    avatar_id = int(data.get('avatar_id', 1))
+    if avatar_id not in range(1, 6):
+        avatar_id = 1
+    user = User(username=username, email=email, avatar_id=avatar_id)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
