@@ -15,6 +15,7 @@ from flask_jwt_extended import (
 )
 from extensions import db, bcrypt, limiter
 from models.user import User
+from models.game_history import GameHistory
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -137,3 +138,19 @@ def me():
         return jsonify({'error': 'User not found.'}), 404
 
     return jsonify({'user': user.to_dict()}), 200
+
+
+# ── Game history ───────────────────────────────────────────────────────────────
+
+@auth_bp.route('/history', methods=['GET'])
+@jwt_required()
+def history():
+    """Return the current user's game history, most recent first."""
+    user_id = int(get_jwt_identity())
+    entries = (
+        GameHistory.query
+        .filter_by(user_id=user_id)
+        .order_by(GameHistory.played_at.desc())
+        .all()
+    )
+    return jsonify({'history': [e.to_dict() for e in entries]}), 200

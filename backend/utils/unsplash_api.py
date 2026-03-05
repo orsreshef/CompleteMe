@@ -54,10 +54,10 @@ class UnsplashAPI:
             size: 'raw', 'full', 'regular', 'small', 'thumb'
 
         Returns:
-            numpy array (BGR format) or None if failed
+            tuple (numpy array BGR, image_url string) — url is '' on fallback
         """
         if self.use_fallback:
-            return self._get_random_image_fallback()
+            return self._get_random_image_fallback(), ''
 
         try:
             # Build API request
@@ -89,8 +89,9 @@ class UnsplashAPI:
                 else:
                     image_data = data
 
-                # Get image URL
+                # Get image URL (use 'small' size for thumbnails in history)
                 image_url = image_data['urls'][size]
+                thumb_url = image_data['urls'].get('small', image_url)
 
                 # Download image
                 img_response = requests.get(image_url, timeout=10)
@@ -106,25 +107,25 @@ class UnsplashAPI:
                     else:
                         image_bgr = image_np
 
-                    return image_bgr
+                    return image_bgr, thumb_url
                 else:
                     print(
                         f"❌ Failed to download image: {img_response.status_code}")
-                    return self._get_random_image_fallback()
+                    return self._get_random_image_fallback(), ''
 
             elif response.status_code == 403:
                 # Rate limit hit for this request — use fallback but don't
                 # lock the session permanently so future requests can retry
                 print("⚠️ Unsplash API rate limit reached for this request. Using fallback.")
-                return self._get_random_image_fallback()
+                return self._get_random_image_fallback(), ''
 
             else:
                 print(f"❌ Unsplash API error: {response.status_code}")
-                return self._get_random_image_fallback()
+                return self._get_random_image_fallback(), ''
 
         except Exception as e:
             print(f"❌ Error fetching from Unsplash: {e}")
-            return self._get_random_image_fallback()
+            return self._get_random_image_fallback(), ''
 
     def get_multiple_random_images(self, count=5, query=None):
         """

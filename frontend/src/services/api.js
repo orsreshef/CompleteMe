@@ -151,6 +151,13 @@ class ApiService {
   async refreshToken() {
     return this.request('/auth/refresh', { method: 'POST' });
   }
+
+  /**
+   * Get the current user's game history
+   */
+  async getHistory() {
+    return this.request('/auth/history');
+  }
 }
 
 const api = new ApiService();

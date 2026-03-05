@@ -21,7 +21,7 @@ const REGION_EMOJIS = {
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout }) => {
+const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory }) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
   const [selectedRegions, setSelectedRegions] = useState(null);
 
@@ -76,6 +76,11 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout }) => {
             </>
           )}
         </div>
+        {user && (
+          <button className="user-bar-history" onClick={onHistory}>
+            📜 History
+          </button>
+        )}
         <button className="user-bar-logout" onClick={onLogout}>
           {user ? 'Sign Out' : 'Sign In'}
         </button>
@@ -253,12 +258,14 @@ WelcomeScreen.propTypes = {
   difficultyLevels: PropTypes.object,
   user:             PropTypes.object,
   onLogout:         PropTypes.func,
+  onHistory:        PropTypes.func,
 };
 
 WelcomeScreen.defaultProps = {
   difficultyLevels: null,
   user:             null,
   onLogout:         () => {},
+  onHistory:        () => {},
 };
 
 export default WelcomeScreen;

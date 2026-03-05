@@ -278,11 +278,12 @@ def create_puzzle():
 
         # Get or generate image
         use_random = data.get('use_random_image', True)
+        fetched_url = ''
 
         if use_random or 'image' not in data:
             # Use random image from Unsplash
             print("📸 Fetching random image from Unsplash...")
-            image = unsplash_api.get_random_image(
+            image, fetched_url = unsplash_api.get_random_image(
                 query=data.get('query', None),
                 orientation='landscape'
             )
@@ -316,7 +317,7 @@ def create_puzzle():
             'difficulty': difficulty,
             'attempts': 0,
             'options': puzzle_data['options'],
-            'image_url': data.get('image_url', ''),
+            'image_url': fetched_url or data.get('image_url', ''),
             'grid_size': puzzle_data.get('num_pieces', 0),
             'difficulty_name': puzzle_data.get('difficulty_name', '')
         }

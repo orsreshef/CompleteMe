@@ -50,6 +50,22 @@
   border-radius: 999px;
 }
 
+.user-bar-history {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.4);
+  padding: 0.35rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.user-bar-history:hover {
+  background: rgba(255,255,255,0.35);
+}
+
 .user-bar-logout {
   background: rgba(255,255,255,0.2);
   color: white;

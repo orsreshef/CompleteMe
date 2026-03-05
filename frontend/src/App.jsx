@@ -11,6 +11,7 @@ import GameBoard from './components/GameBoard/GameBoard';
 import LoadingScreen from './components/LoadingScreen/LoadingScreen';
 import LoginScreen from './components/LoginScreen/LoginScreen';
 import SignupScreen from './components/SignupScreen/SignupScreen';
+import HistoryScreen from './components/HistoryScreen/HistoryScreen';
 import api from './services/api';
 
 function App() {
@@ -198,6 +199,7 @@ function App() {
               difficultyLevels={config?.difficulty_levels}
               user={user}
               onLogout={handleLogout}
+              onHistory={() => navigate('/history')}
             />
           }
         />
@@ -257,6 +259,16 @@ function App() {
                 </button>
               </div>
             </div>
+          }
+        />
+
+        {/* Game history */}
+        <Route
+          path="/history"
+          element={
+            user
+              ? <HistoryScreen user={user} onBack={() => navigate('/game')} />
+              : <Navigate to="/login" replace />
           }
         />
 
