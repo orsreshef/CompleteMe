@@ -29,12 +29,12 @@ function App() {
     api.getMe()
       .then(data => {
         setUser(data.user);
-        navigate('/');
+        navigate('/game');
       })
       .catch(() => {
         // No valid JWT — check if the user was in guest mode before the refresh
         if (sessionStorage.getItem('guestMode')) {
-          navigate('/');
+          navigate('/game');
         } else {
           navigate('/login');
         }
@@ -95,13 +95,13 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData);
-    navigate('/');
+    navigate('/game');
   };
 
   const handleGuest = () => {
     sessionStorage.setItem('guestMode', '1');
     setUser(null);
-    navigate('/');
+    navigate('/game');
   };
 
   const handleLogout = async () => {
@@ -118,7 +118,7 @@ function App() {
 
   const restartGame = () => {
     setGameData(null);
-    navigate('/');
+    navigate('/game');
   };
 
   const handleGameComplete = async (scoreEarned = 0) => {
@@ -142,7 +142,7 @@ function App() {
 
     setTimeout(() => {
       setGameData(null);
-      navigate('/');
+      navigate('/game');
     }, 5000);
   };
 
@@ -188,7 +188,7 @@ function App() {
 
         {/* Main game flow */}
         <Route
-          path="/"
+          path="/game"
           element={
             <WelcomeScreen
               onStartGame={handleSelectDifficulty}
@@ -206,7 +206,7 @@ function App() {
               difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
               regionCount={regionCount}
               onStartGame={startGame}
-              onBack={() => navigate('/')}
+              onBack={() => navigate('/game')}
             />
           }
         />
@@ -247,6 +247,9 @@ function App() {
             </div>
           }
         />
+
+        {/* Redirect bare root to /game */}
+        <Route path="/" element={<Navigate to="/game" replace />} />
 
         {/* Fallback — redirect unknown paths to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
