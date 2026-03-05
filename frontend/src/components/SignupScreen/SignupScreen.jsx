@@ -91,6 +91,7 @@ const SignupScreen = ({ onLogin, onGoLogin }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
         >
+          <button className="btn-back" onClick={onGoLogin}>← Back to Sign In</button>
           <h2 className="auth-title">Create your account</h2>
           <p className="auth-subtitle">Join Complete Me and start solving puzzles</p>
 

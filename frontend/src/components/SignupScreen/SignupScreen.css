@@ -1,5 +1,34 @@
 @import '../LoginScreen/LoginScreen.css';
 
+/* ── Signup-specific panel overrides: wider card, less side padding ───────── */
+.auth-panel-right {
+  padding: 2.5rem 3rem;
+}
+
+.auth-panel-right .auth-card {
+  max-width: 600px;
+}
+
+/* ── Back button ─────────────────────────────────────────────────────────── */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--spacing-md);
+  transition: color var(--transition-base);
+}
+
+.btn-back:hover {
+  color: var(--primary);
+}
+
 /* ── Avatar picker ────────────────────────────────────────────────────────── */
 .avatar-section {
   margin-bottom: var(--spacing-md);
