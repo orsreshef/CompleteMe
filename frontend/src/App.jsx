@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -12,8 +13,8 @@ import SignupScreen from './components/SignupScreen/SignupScreen';
 import api from './services/api';
 
 function App() {
-  // 'login', 'signup', 'welcome', 'imageSelect', 'loading', 'playing', 'finished'
-  const [gameState, setGameState] = useState('login');
+  const navigate = useNavigate();
+
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState(null);
   const [difficulty, setDifficulty] = useState(1);
@@ -28,19 +29,20 @@ function App() {
     api.getMe()
       .then(data => {
         setUser(data.user);
-        setGameState('welcome');
+        navigate('/');
       })
       .catch(() => {
         // No valid JWT — check if the user was in guest mode before the refresh
         if (sessionStorage.getItem('guestMode')) {
-          setGameState('welcome');
+          navigate('/');
+        } else {
+          navigate('/login');
         }
-        // else stay on login screen
       })
       .finally(() => {
         setInitializing(false);
       });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadConfig = async () => {
     try {
@@ -57,12 +59,12 @@ function App() {
   const handleSelectDifficulty = (selectedDifficulty, selectedRegionCount) => {
     setDifficulty(selectedDifficulty);
     setRegionCount(selectedRegionCount);
-    setGameState('imageSelect');
+    navigate('/select');
   };
 
   // Called from ImageSelector with image params: { query } or {}
   const startGame = async (imageParams = {}) => {
-    setGameState('loading');
+    navigate('/loading');
 
     try {
       console.log(`🎮 Starting game with difficulty ${difficulty}...`, imageParams);
@@ -77,7 +79,7 @@ function App() {
       console.log('✅ Puzzle created:', data);
 
       setGameData(data);
-      setGameState('playing');
+      navigate('/play');
 
       toast.success('Puzzle created! Find the missing piece! 🧩', {
         position: 'top-center',
@@ -87,19 +89,19 @@ function App() {
     } catch (error) {
       console.error('❌ Failed to create puzzle:', error);
       toast.error('Failed to create puzzle. Please try again.');
-      setGameState('imageSelect');
+      navigate('/select');
     }
   };
 
   const handleLogin = (userData) => {
     setUser(userData);
-    setGameState('welcome');
+    navigate('/');
   };
 
   const handleGuest = () => {
     sessionStorage.setItem('guestMode', '1');
     setUser(null);
-    setGameState('welcome');
+    navigate('/');
   };
 
   const handleLogout = async () => {
@@ -111,17 +113,17 @@ function App() {
     sessionStorage.removeItem('guestMode');
     setUser(null);
     setGameData(null);
-    setGameState('login');
+    navigate('/login');
   };
 
   const restartGame = () => {
-    setGameState('welcome');
     setGameData(null);
+    navigate('/');
   };
 
   const handleGameComplete = async (scoreEarned = 0) => {
     setLastScore(scoreEarned);
-    setGameState('finished');
+    navigate('/finished');
 
     toast.success('🎉 Congratulations! You solved the puzzle!', {
       position: 'top-center',
@@ -139,8 +141,8 @@ function App() {
     }
 
     setTimeout(() => {
-      setGameState('welcome');
       setGameData(null);
+      navigate('/');
     }, 5000);
   };
 
@@ -162,73 +164,93 @@ function App() {
         theme="light"
       />
 
-      {gameState === 'login' && (
-        <LoginScreen
-          onLogin={handleLogin}
-          onGuest={handleGuest}
-          onGoSignup={() => setGameState('signup')}
+      <Routes>
+        {/* Auth screens */}
+        <Route
+          path="/login"
+          element={
+            <LoginScreen
+              onLogin={handleLogin}
+              onGuest={handleGuest}
+              onGoSignup={() => navigate('/signup')}
+            />
+          }
         />
-      )}
-
-      {gameState === 'signup' && (
-        <SignupScreen
-          onLogin={handleLogin}
-          onGoLogin={() => setGameState('login')}
+        <Route
+          path="/signup"
+          element={
+            <SignupScreen
+              onLogin={handleLogin}
+              onGoLogin={() => navigate('/login')}
+            />
+          }
         />
-      )}
 
-      {gameState === 'welcome' && (
-        <WelcomeScreen
-          onStartGame={handleSelectDifficulty}
-          difficultyLevels={config?.difficulty_levels}
-          user={user}
-          onLogout={handleLogout}
+        {/* Main game flow */}
+        <Route
+          path="/"
+          element={
+            <WelcomeScreen
+              onStartGame={handleSelectDifficulty}
+              difficultyLevels={config?.difficulty_levels}
+              user={user}
+              onLogout={handleLogout}
+            />
+          }
         />
-      )}
-
-      {gameState === 'imageSelect' && (
-        <ImageSelector
-          difficulty={difficulty}
-          difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
-          regionCount={regionCount}
-          onStartGame={startGame}
-          onBack={() => setGameState('welcome')}
+        <Route
+          path="/select"
+          element={
+            <ImageSelector
+              difficulty={difficulty}
+              difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
+              regionCount={regionCount}
+              onStartGame={startGame}
+              onBack={() => navigate('/')}
+            />
+          }
         />
-      )}
-
-      {gameState === 'loading' && (
-        <LoadingScreen difficulty={difficulty} />
-      )}
-
-      {gameState === 'playing' && gameData && (
-        <GameBoard
-          gameData={gameData}
-          difficulty={difficulty}
-          onRestart={restartGame}
-          onComplete={handleGameComplete}
+        <Route
+          path="/loading"
+          element={<LoadingScreen difficulty={difficulty} />}
         />
-      )}
-
-      {gameState === 'finished' && (
-        <div className="completion-screen fade-in">
-          <div className="completion-content">
-            <div className="completion-icon">🎉</div>
-            <h1>Amazing Job!</h1>
-            <p>You solved the puzzle!</p>
-            {user && lastScore > 0 && (
-              <div className="score-earned-badge">
-                +{lastScore} pts
+        <Route
+          path="/play"
+          element={
+            gameData
+              ? <GameBoard
+                  gameData={gameData}
+                  difficulty={difficulty}
+                  onRestart={restartGame}
+                  onComplete={handleGameComplete}
+                />
+              : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/finished"
+          element={
+            <div className="completion-screen fade-in">
+              <div className="completion-content">
+                <div className="completion-icon">🎉</div>
+                <h1>Amazing Job!</h1>
+                <p>You solved the puzzle!</p>
+                {user && lastScore > 0 && (
+                  <div className="score-earned-badge">
+                    +{lastScore} pts
+                  </div>
+                )}
+                <button className="btn-primary" onClick={restartGame}>
+                  Play Again
+                </button>
               </div>
-            )}
-            <button
-              className="btn-primary"
-              onClick={restartGame}
-            >
-              Play Again
-            </button>
-          </div>
-        </div>
-      )}
+            </div>
+          }
+        />
+
+        {/* Fallback — redirect unknown paths to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </div>
   );
 }
