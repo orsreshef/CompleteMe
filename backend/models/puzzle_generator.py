@@ -241,7 +241,7 @@ class PuzzleGenerator:
             try:
                 # Get random image from Unsplash
                 query = random.choice(queries)
-                random_image = self.unsplash_api.get_random_image(query=query)
+                random_image, _ = self.unsplash_api.get_random_image(query=query)
 
                 if random_image is None:
                     print(f"⚠️ Failed to get image {i+1}, using fallback")
