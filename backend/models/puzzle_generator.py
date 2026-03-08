@@ -228,14 +228,14 @@ class PuzzleGenerator:
 
         # Determine query based on difficulty
         if difficulty_level <= 2:
-            # Easy: completely random images
-            queries = [None]  # Random
+            # Easy: colorful, fun, kid-friendly images
+            queries = ['flowers', 'balloons', 'candy', 'fruits', 'birds']
         elif difficulty_level == 3:
-            # Medium: somewhat related categories
-            queries = ['nature', 'animals', 'objects', 'textures', 'patterns']
+            # Medium: colorful nature and animals
+            queries = ['butterflies', 'parrots', 'coral reef', 'sunflowers', 'koi fish']
         else:
-            # Hard: similar textures and patterns
-            queries = ['textures', 'patterns', 'abstract', 'closeup', 'detail']
+            # Hard: colorful textures that are trickier to distinguish
+            queries = ['autumn leaves', 'tropical flowers', 'feathers', 'peacock', 'mosaic']
 
         for i in range(count):
             try:

@@ -36,13 +36,16 @@ class UnsplashAPI:
         self.base_url = Config.UNSPLASH_API_URL
         self.session = requests.Session()
 
-    # Safe, diverse topics used when no query is specified
+    # Safe, colorful, kid-friendly topics used when no query is specified
     _DEFAULT_QUERIES = [
-        'nature', 'animals', 'landscape', 'city', 'architecture',
-        'flowers', 'food', 'travel', 'mountains', 'ocean',
-        'forest', 'sky', 'cars', 'trains', 'birds',
-        'cats', 'dogs', 'sports', 'fruits', 'winter'
+        'flowers', 'butterflies', 'birds', 'fruits', 'rainbow',
+        'balloons', 'playground', 'candy', 'cats', 'dogs',
+        'jellyfish', 'coral reef', 'parrots', 'sunflowers', 'hot air balloon',
+        'fireworks', 'autumn leaves', 'tropical beach', 'peacock', 'koi fish'
     ]
+
+    # Bright colors to randomly bias Unsplash results toward vibrant images
+    _BRIGHT_COLORS = ['yellow', 'orange', 'red', 'purple', 'magenta', 'green', 'teal', 'blue']
 
     def get_random_image(self, query=None, orientation='landscape', size='regular'):
         """
@@ -74,7 +77,8 @@ class UnsplashAPI:
                 'orientation': orientation,
                 'count': 1,
                 'query': active_query,
-                'content_filter': 'high'  # child-safe content only
+                'content_filter': 'high',  # child-safe content only
+                'color': random.choice(self._BRIGHT_COLORS),
             }
 
             # Make request
