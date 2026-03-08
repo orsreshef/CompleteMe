@@ -62,12 +62,20 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
     <div className="welcome-screen">
       {/* User bar — always visible (logged in or guest) */}
       <div className="user-bar">
-        <div className="user-bar-info">
+        <div className={`user-bar-info ${user ? 'user-bar-info--hoverable' : ''}`}>
           {user ? (
             <>
               <span className="user-bar-avatar">{AVATARS[user.avatar_id] || '🧩'}</span>
               <span className="user-bar-name">{user.username}</span>
               <span className="user-bar-score">Score: {user.total_score ?? 0}</span>
+              <div className="user-dropdown">
+                <button className="user-dropdown-item" onClick={onHistory}>
+                  📜 Game History
+                </button>
+                <button className="user-dropdown-item user-dropdown-item--disabled" disabled>
+                  ✏️ Edit Profile <span className="coming-soon">soon</span>
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -76,11 +84,6 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
             </>
           )}
         </div>
-        {user && (
-          <button className="user-bar-history" onClick={onHistory}>
-            📜 History
-          </button>
-        )}
         <button className="user-bar-logout" onClick={onLogout}>
           {user ? 'Sign Out' : 'Sign In'}
         </button>
