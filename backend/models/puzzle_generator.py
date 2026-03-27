@@ -6,6 +6,7 @@ Handles creation of puzzle pieces and game setup
 import numpy as np
 import cv2
 import random
+import time as _time
 from utils.unsplash_api import UnsplashAPI
 from models.image_processor import ImageProcessor
 from config import Config
@@ -98,11 +99,13 @@ class PuzzleGenerator:
 
         # Pool always has 6 pieces: num_regions correct + (6 - num_regions) decoys
         decoy_count = max(6 - num_regions, 2)
+        _t_decoys = _time.perf_counter()
         decoy_pieces = self._generate_decoy_pieces(
             piece_width, piece_height,
             count=decoy_count,
             difficulty_level=difficulty_level
         )
+        print(f"⏱️  [TIMING] _generate_decoy_pieces ({decoy_count} decoys): {_time.perf_counter() - _t_decoys:.2f}s")
 
         # Combine and shuffle
         all_options = missing_pieces + decoy_pieces
@@ -241,7 +244,9 @@ class PuzzleGenerator:
             try:
                 # Get random image from Unsplash
                 query = random.choice(queries)
+                _t_decoy_i = _time.perf_counter()
                 random_image, _ = self.unsplash_api.get_random_image(query=query)
+                print(f"⏱️  [TIMING]   decoy {i+1}/{count} Unsplash fetch: {_time.perf_counter() - _t_decoy_i:.2f}s")
 
                 if random_image is None:
                     print(f"⚠️ Failed to get image {i+1}, using fallback")

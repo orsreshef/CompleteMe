@@ -39,7 +39,7 @@ limiter.init_app(app)
 CORS(app, resources={
     r"/api/*": {
         "origins": app.config['CORS_ORIGINS'],
-        "methods": ["GET", "POST", "OPTIONS"],
+        "methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type"],
         "supports_credentials": True
     }
@@ -280,13 +280,18 @@ def create_puzzle():
         use_random = data.get('use_random_image', True)
         fetched_url = ''
 
+        import time as _time
+        _t0 = _time.perf_counter()
+
         if use_random or 'image' not in data:
             # Use random image from Unsplash
             print("📸 Fetching random image from Unsplash...")
+            _t_unsplash = _time.perf_counter()
             image, fetched_url = unsplash_api.get_random_image(
                 query=data.get('query', None),
                 orientation='landscape'
             )
+            print(f"⏱️  [TIMING] Unsplash main image fetch: {_time.perf_counter() - _t_unsplash:.2f}s")
 
             if image is None:
                 return jsonify({'error': 'Failed to fetch random image'}), 500
@@ -302,8 +307,10 @@ def create_puzzle():
 
         # Create puzzle
         print(f"🎮 Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
+        _t_puzzle = _time.perf_counter()
         puzzle_data = puzzle_generator.create_puzzle(
             image, difficulty_level=difficulty, num_regions=num_regions)
+        print(f"⏱️  [TIMING] puzzle_generator.create_puzzle: {_time.perf_counter() - _t_puzzle:.2f}s")
 
         # Generate unique game ID
         import uuid
@@ -323,9 +330,11 @@ def create_puzzle():
         }
 
         # Convert images to base64 for response
+        _t_b64 = _time.perf_counter()
         puzzle_image_b64 = image_to_base64(puzzle_data['puzzle_image'])
         options_b64 = [image_to_base64(option)
                        for option in puzzle_data['options']]
+        print(f"⏱️  [TIMING] base64 encoding ({1 + len(puzzle_data['options'])} images): {_time.perf_counter() - _t_b64:.2f}s")
 
         # Image dimensions (for frontend drop-zone overlay positioning)
         img_h, img_w = puzzle_data['puzzle_image'].shape[:2]
@@ -351,6 +360,7 @@ def create_puzzle():
         }
 
         print(f"✅ Puzzle created with game_id: {game_id}")
+        print(f"⏱️  [TIMING] Total create_puzzle handler: {_time.perf_counter() - _t0:.2f}s")
 
         return jsonify(response), 200
 
