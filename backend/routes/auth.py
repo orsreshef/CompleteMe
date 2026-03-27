@@ -140,6 +140,79 @@ def me():
     return jsonify({'user': user.to_dict()}), 200
 
 
+# ── Update avatar ─────────────────────────────────────────────────────────────
+
+@auth_bp.route('/update-avatar', methods=['PATCH'])
+@jwt_required()
+def update_avatar():
+    """Update the current user's avatar."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
+    data = request.get_json(silent=True) or {}
+    avatar_id = data.get('avatar_id')
+    if avatar_id not in range(1, 6):
+        return jsonify({'error': 'Invalid avatar.'}), 400
+
+    user.avatar_id = avatar_id
+    db.session.commit()
+    return jsonify({'user': user.to_dict()}), 200
+
+
+# ── Change password ────────────────────────────────────────────────────────────
+
+@auth_bp.route('/change-password', methods=['PATCH'])
+@jwt_required()
+def change_password():
+    """Change the current user's password."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
+    data = request.get_json(silent=True) or {}
+    current_password = data.get('current_password') or ''
+    new_password = data.get('new_password') or ''
+
+    if not user.check_password(current_password):
+        return jsonify({'error': 'Current password is incorrect.'}), 401
+
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters.'}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': 'Password updated successfully.'}), 200
+
+
+# ── Delete account ─────────────────────────────────────────────────────────────
+
+@auth_bp.route('/delete-account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    """Permanently delete the current user's account and all their history."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
+    data = request.get_json(silent=True) or {}
+    password = data.get('password') or ''
+
+    if not user.check_password(password):
+        return jsonify({'error': 'Password is incorrect.'}), 401
+
+    GameHistory.query.filter_by(user_id=user_id).delete()
+    db.session.delete(user)
+    db.session.commit()
+
+    response = jsonify({'message': 'Account deleted successfully.'})
+    unset_jwt_cookies(response)
+    return response, 200
+
+
 # ── Game history ───────────────────────────────────────────────────────────────
 
 @auth_bp.route('/history', methods=['GET'])

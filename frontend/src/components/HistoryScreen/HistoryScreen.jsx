@@ -13,7 +13,7 @@ const DIFFICULTY_EMOJI = {
   Expert: '🚀',
 };
 
-const HistoryScreen = ({ user, onBack, onLogout, onNewGame }) => {
+const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,7 +35,7 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame }) => {
 
   return (
     <div className="history-screen">
-      <UserBar user={user} onLogout={onLogout} onHistory={() => {}} onNewGame={onNewGame} />
+      <UserBar user={user} onLogout={onLogout} onHistory={() => {}} onNewGame={onNewGame} onEditProfile={onEditProfile} />
       <div className="history-container">
         {/* Header */}
         <motion.div
@@ -151,14 +151,16 @@ HistoryScreen.propTypes = {
   user:      PropTypes.object,
   onBack:    PropTypes.func,
   onLogout:  PropTypes.func,
-  onNewGame: PropTypes.func,
+  onNewGame:     PropTypes.func,
+  onEditProfile: PropTypes.func,
 };
 
 HistoryScreen.defaultProps = {
-  user:      null,
-  onBack:    () => {},
-  onLogout:  () => {},
-  onNewGame: () => {},
+  user:          null,
+  onBack:        () => {},
+  onLogout:      () => {},
+  onNewGame:     () => {},
+  onEditProfile: () => {},
 };
 
 export default HistoryScreen;

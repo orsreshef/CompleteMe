@@ -158,6 +158,36 @@ class ApiService {
   async getHistory() {
     return this.request('/auth/history');
   }
+
+  /**
+   * Update the current user's avatar
+   */
+  async updateAvatar(avatarId) {
+    return this.request('/auth/update-avatar', {
+      method: 'PATCH',
+      body: JSON.stringify({ avatar_id: avatarId }),
+    });
+  }
+
+  /**
+   * Change the current user's password
+   */
+  async changePassword(currentPassword, newPassword) {
+    return this.request('/auth/change-password', {
+      method: 'PATCH',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  }
+
+  /**
+   * Permanently delete the current user's account
+   */
+  async deleteAccount(password) {
+    return this.request('/auth/delete-account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  }
 }
 
 const api = new ApiService();

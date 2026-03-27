@@ -4,7 +4,7 @@ import './UserBar.css';
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const UserBar = ({ user, onLogout, onHistory, onNewGame }) => (
+const UserBar = ({ user, onLogout, onHistory, onNewGame, onEditProfile }) => (
   <div className="user-bar">
     <div className="user-bar-info">
       {user ? (
@@ -22,8 +22,8 @@ const UserBar = ({ user, onLogout, onHistory, onNewGame }) => (
               <button className="user-dropdown-item" onClick={onHistory}>
                 📜 Game History
               </button>
-              <button className="user-dropdown-item user-dropdown-item--disabled" disabled>
-                ✏️ Edit Profile <span className="coming-soon">soon</span>
+              <button className="user-dropdown-item" onClick={onEditProfile}>
+                ✏️ Edit Profile
               </button>
             </div>
           </div>
@@ -45,17 +45,19 @@ const UserBar = ({ user, onLogout, onHistory, onNewGame }) => (
 );
 
 UserBar.propTypes = {
-  user:      PropTypes.object,
-  onLogout:  PropTypes.func,
-  onHistory: PropTypes.func,
-  onNewGame: PropTypes.func,
+  user:          PropTypes.object,
+  onLogout:      PropTypes.func,
+  onHistory:     PropTypes.func,
+  onNewGame:     PropTypes.func,
+  onEditProfile: PropTypes.func,
 };
 
 UserBar.defaultProps = {
-  user:      null,
-  onLogout:  () => {},
-  onHistory: () => {},
-  onNewGame: () => {},
+  user:          null,
+  onLogout:      () => {},
+  onHistory:     () => {},
+  onNewGame:     () => {},
+  onEditProfile: () => {},
 };
 
 export default UserBar;

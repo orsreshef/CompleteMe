@@ -22,7 +22,7 @@ const REGION_EMOJIS = {
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory, onNewGame }) => {
+const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory, onNewGame, onEditProfile }) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
   const [selectedRegions, setSelectedRegions] = useState(null);
 
@@ -61,7 +61,7 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
 
   return (
     <div className="welcome-screen">
-      <UserBar user={user} onLogout={onLogout} onHistory={onHistory} onNewGame={onNewGame} />
+      <UserBar user={user} onLogout={onLogout} onHistory={onHistory} onNewGame={onNewGame} onEditProfile={onEditProfile} />
 
       <motion.div
         className="welcome-container"
@@ -237,6 +237,7 @@ WelcomeScreen.propTypes = {
   onLogout:         PropTypes.func,
   onHistory:        PropTypes.func,
   onNewGame:        PropTypes.func,
+  onEditProfile:    PropTypes.func,
 };
 
 WelcomeScreen.defaultProps = {
@@ -245,6 +246,7 @@ WelcomeScreen.defaultProps = {
   onLogout:         () => {},
   onHistory:        () => {},
   onNewGame:        () => {},
+  onEditProfile:    () => {},
 };
 
 export default WelcomeScreen;

@@ -12,6 +12,7 @@ import LoadingScreen from './components/LoadingScreen/LoadingScreen';
 import LoginScreen from './components/LoginScreen/LoginScreen';
 import SignupScreen from './components/SignupScreen/SignupScreen';
 import HistoryScreen from './components/HistoryScreen/HistoryScreen';
+import EditProfileScreen from './components/EditProfileScreen/EditProfileScreen';
 import api from './services/api';
 
 function App() {
@@ -201,6 +202,7 @@ function App() {
               onLogout={handleLogout}
               onHistory={() => navigate('/history')}
               onNewGame={() => navigate('/game')}
+              onEditProfile={() => navigate('/profile')}
             />
           }
         />
@@ -273,7 +275,25 @@ function App() {
                     onBack={() => navigate('/game')}
                     onLogout={handleLogout}
                     onNewGame={() => navigate('/game')}
+                    onEditProfile={() => navigate('/profile')}
                   />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* Edit profile */}
+        <Route
+          path="/profile"
+          element={
+            user
+              ? <EditProfileScreen
+                  user={user}
+                  onUserUpdate={setUser}
+                  onLogout={handleLogout}
+                  onHistory={() => navigate('/history')}
+                  onNewGame={() => navigate('/game')}
+                  onDeleteAccount={handleLogout}
+                />
               : <Navigate to="/login" replace />
           }
         />
