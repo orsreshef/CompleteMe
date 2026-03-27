@@ -200,6 +200,7 @@ function App() {
               user={user}
               onLogout={handleLogout}
               onHistory={() => navigate('/history')}
+              onNewGame={() => navigate('/game')}
             />
           }
         />
@@ -267,7 +268,12 @@ function App() {
           path="/history"
           element={
             user
-              ? <HistoryScreen user={user} onBack={() => navigate('/game')} />
+              ? <HistoryScreen
+                    user={user}
+                    onBack={() => navigate('/game')}
+                    onLogout={handleLogout}
+                    onNewGame={() => navigate('/game')}
+                  />
               : <Navigate to="/login" replace />
           }
         />

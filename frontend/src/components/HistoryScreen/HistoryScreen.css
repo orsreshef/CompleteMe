@@ -3,7 +3,7 @@
   inset: 0;
   background: var(--bg-gradient);
   overflow-y: auto;
-  padding: var(--spacing-lg);
+  padding: 80px var(--spacing-lg) var(--spacing-lg);
 }
 
 .history-container {
@@ -30,29 +30,6 @@
   margin: 0;
 }
 
-.history-user {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.75);
-  min-width: 60px;
-  text-align: right;
-}
-
-.btn-back {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition-base);
-  white-space: nowrap;
-}
-
-.btn-back:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
 
 /* Summary stats */
 .history-stats {

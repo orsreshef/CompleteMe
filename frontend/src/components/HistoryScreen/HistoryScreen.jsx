@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import UserBar from '../UserBar/UserBar';
 import './HistoryScreen.css';
 
 const DIFFICULTY_EMOJI = {
@@ -11,7 +13,7 @@ const DIFFICULTY_EMOJI = {
   Expert: '🚀',
 };
 
-const HistoryScreen = ({ user, onBack }) => {
+const HistoryScreen = ({ user, onBack, onLogout, onNewGame }) => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,6 +35,7 @@ const HistoryScreen = ({ user, onBack }) => {
 
   return (
     <div className="history-screen">
+      <UserBar user={user} onLogout={onLogout} onHistory={() => {}} onNewGame={onNewGame} />
       <div className="history-container">
         {/* Header */}
         <motion.div
@@ -40,11 +43,7 @@ const HistoryScreen = ({ user, onBack }) => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <button className="btn-back" onClick={onBack}>← Back</button>
           <h1 className="history-title">Game History</h1>
-          <div className="history-user">
-            <span>{user?.username}</span>
-          </div>
         </motion.div>
 
         {/* Summary stats */}
@@ -146,6 +145,20 @@ const HistoryScreen = ({ user, onBack }) => {
       </div>
     </div>
   );
+};
+
+HistoryScreen.propTypes = {
+  user:      PropTypes.object,
+  onBack:    PropTypes.func,
+  onLogout:  PropTypes.func,
+  onNewGame: PropTypes.func,
+};
+
+HistoryScreen.defaultProps = {
+  user:      null,
+  onBack:    () => {},
+  onLogout:  () => {},
+  onNewGame: () => {},
 };
 
 export default HistoryScreen;

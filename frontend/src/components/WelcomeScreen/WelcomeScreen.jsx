@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
+import UserBar from '../UserBar/UserBar';
 import './WelcomeScreen.css';
 
 const MAX_REGIONS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4 };
@@ -21,7 +22,7 @@ const REGION_EMOJIS = {
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory }) => {
+const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory, onNewGame }) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
   const [selectedRegions, setSelectedRegions] = useState(null);
 
@@ -60,34 +61,7 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
 
   return (
     <div className="welcome-screen">
-      {/* User bar — always visible (logged in or guest) */}
-      <div className="user-bar">
-        <div className={`user-bar-info ${user ? 'user-bar-info--hoverable' : ''}`}>
-          {user ? (
-            <>
-              <span className="user-bar-avatar">{AVATARS[user.avatar_id] || '🧩'}</span>
-              <span className="user-bar-name">{user.username}</span>
-              <span className="user-bar-score">Score: {user.total_score ?? 0}</span>
-              <div className="user-dropdown">
-                <button className="user-dropdown-item" onClick={onHistory}>
-                  📜 Game History
-                </button>
-                <button className="user-dropdown-item user-dropdown-item--disabled" disabled>
-                  ✏️ Edit Profile <span className="coming-soon">soon</span>
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <span className="user-bar-avatar">🧑</span>
-              <span className="user-bar-name">Guest</span>
-            </>
-          )}
-        </div>
-        <button className="user-bar-logout" onClick={onLogout}>
-          {user ? 'Sign Out' : 'Sign In'}
-        </button>
-      </div>
+      <UserBar user={user} onLogout={onLogout} onHistory={onHistory} onNewGame={onNewGame} />
 
       <motion.div
         className="welcome-container"
@@ -262,6 +236,7 @@ WelcomeScreen.propTypes = {
   user:             PropTypes.object,
   onLogout:         PropTypes.func,
   onHistory:        PropTypes.func,
+  onNewGame:        PropTypes.func,
 };
 
 WelcomeScreen.defaultProps = {
@@ -269,6 +244,7 @@ WelcomeScreen.defaultProps = {
   user:             null,
   onLogout:         () => {},
   onHistory:        () => {},
+  onNewGame:        () => {},
 };
 
 export default WelcomeScreen;
