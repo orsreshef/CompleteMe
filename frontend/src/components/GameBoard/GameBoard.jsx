@@ -29,6 +29,11 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
   const pieceAspectRatio = `${missing_positions[0].width} / ${missing_positions[0].height}`;
   const allZonesFilled = Object.keys(placements).length === num_regions;
 
+  const emptyZones = missing_positions
+    .map((_, i) => i)
+    .filter((i) => !placements.hasOwnProperty(i));
+  const hintEnabled = emptyZones.length === 1;
+
   // ── Drag handlers ────────────────────────────────────────────────────
   const handleDragStart = (e, optionIndex) => {
     setDraggedPiece(optionIndex);
@@ -131,7 +136,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
 
   const handleHint = async () => {
     try {
-      const hint = await api.getHint(gameData.game_id);
+      const hint = await api.getHint(gameData.game_id, emptyZones[0]);
       toast.info(hint.hint, { position: 'top-center', autoClose: 5000 });
     } catch (error) {
       toast.error('Failed to get hint');
@@ -183,7 +188,12 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
           </div>
 
           <div className="game-actions">
-            <button className="btn-hint" onClick={handleHint} disabled={isValidating}>
+            <button
+              className={`btn-hint ${!hintEnabled ? 'btn-hint--disabled' : ''}`}
+              onClick={handleHint}
+              disabled={!hintEnabled || isValidating}
+              title={!hintEnabled ? `Fill ${emptyZones.length - 1} more piece${emptyZones.length - 1 !== 1 ? 's' : ''} to unlock the hint` : 'Get a hint for the last piece'}
+            >
               💡 Hint
             </button>
             <button className="btn-restart" onClick={onRestart} disabled={isValidating}>

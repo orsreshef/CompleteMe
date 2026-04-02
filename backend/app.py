@@ -611,9 +611,13 @@ def get_hint():
 
         game_data = active_games[game_id]
 
-        # Get puzzle image and missing position
+        # Get puzzle image and the specific zone the player needs help with
         puzzle_image = game_data['puzzle_image']
-        missing_position = game_data['missing_position']
+        zone_index = int(data.get('zone_index', 0))
+        missing_positions = game_data['missing_positions']
+        if zone_index >= len(missing_positions):
+            zone_index = 0
+        missing_position = missing_positions[zone_index]
         attempts = game_data['attempts']
 
         # Extract boundary colors

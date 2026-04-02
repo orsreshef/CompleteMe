@@ -86,6 +86,12 @@
   box-shadow: var(--shadow-md);
 }
 
+.btn-hint--disabled {
+  background: #d1d5db;
+  color: #4b5563;
+  cursor: not-allowed;
+}
+
 .btn-restart {
   background: #ef4444;
   color: white;

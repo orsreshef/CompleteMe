@@ -81,11 +81,12 @@ class ApiService {
   /**
    * Get hint
    */
-  async getHint(gameId) {
+  async getHint(gameId, zoneIndex) {
     return this.request('/puzzle/hint', {
       method: 'POST',
       body: JSON.stringify({
         game_id: gameId,
+        zone_index: zoneIndex,
       }),
     });
   }
