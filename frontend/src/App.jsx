@@ -130,10 +130,6 @@ function App() {
     setShowConfetti(true);
     navigate('/finished');
 
-    toast.success('🎉 Congratulations! You solved the puzzle!', {
-      position: 'top-center',
-      autoClose: 5000
-    });
 
     // Refresh user profile so the score updates immediately in the UI
     if (user) {
