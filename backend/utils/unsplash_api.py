@@ -6,10 +6,21 @@ Handles fetching random images from Unsplash
 import requests
 import random
 import io
+import threading
 from PIL import Image
 import numpy as np
 import cv2
 from config import Config
+
+# Each thread gets its own session so concurrent fetches never share state
+_thread_local = threading.local()
+
+
+def _get_thread_session():
+    """Return a requests.Session that belongs to the current thread."""
+    if not hasattr(_thread_local, 'session'):
+        _thread_local.session = requests.Session()
+    return _thread_local.session
 
 
 class UnsplashAPI:
@@ -34,7 +45,6 @@ class UnsplashAPI:
             print("✅ Unsplash API initialized")
 
         self.base_url = Config.UNSPLASH_API_URL
-        self.session = requests.Session()
 
     # Safe, colorful, kid-friendly topics used when no query is specified
     _DEFAULT_QUERIES = [
@@ -81,8 +91,8 @@ class UnsplashAPI:
                 'color': random.choice(self._BRIGHT_COLORS),
             }
 
-            # Make request
-            response = self.session.get(
+            # Make request (thread-local session — safe for concurrent calls)
+            response = _get_thread_session().get(
                 url, headers=headers, params=params, timeout=10)
 
             if response.status_code == 200:
@@ -97,8 +107,8 @@ class UnsplashAPI:
                 image_url = image_data['urls'][size]
                 thumb_url = image_data['urls'].get('small', image_url)
 
-                # Download image
-                img_response = requests.get(image_url, timeout=10)
+                # Download image (reuse same thread-local session)
+                img_response = _get_thread_session().get(image_url, timeout=10)
 
                 if img_response.status_code == 200:
                     # Convert to numpy array

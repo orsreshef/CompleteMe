@@ -283,21 +283,22 @@ def create_puzzle():
         import time as _time
         _t0 = _time.perf_counter()
 
+        prefetched_decoys = None
+
         if use_random or 'image' not in data:
-            # Use random image from Unsplash
-            print("📸 Fetching random image from Unsplash...")
-            _t_unsplash = _time.perf_counter()
-            image, fetched_url = unsplash_api.get_random_image(
+            # Fetch main image + all decoys in parallel
+            print("📸 Fetching main image and decoys in parallel from Unsplash...")
+            image, fetched_url, prefetched_decoys = puzzle_generator.prefetch_all_images(
                 query=data.get('query', None),
-                orientation='landscape'
+                difficulty_level=difficulty,
+                num_regions=num_regions
             )
-            print(f"⏱️  [TIMING] Unsplash main image fetch: {_time.perf_counter() - _t_unsplash:.2f}s")
 
             if image is None:
                 return jsonify({'error': 'Failed to fetch random image'}), 500
 
         else:
-            # Use uploaded image
+            # Use uploaded image — decoys will be fetched in parallel inside create_puzzle
             print("📤 Using uploaded image...")
             image_data = data['image']
             image = base64_to_image(image_data)
@@ -309,7 +310,8 @@ def create_puzzle():
         print(f"🎮 Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
         _t_puzzle = _time.perf_counter()
         puzzle_data = puzzle_generator.create_puzzle(
-            image, difficulty_level=difficulty, num_regions=num_regions)
+            image, difficulty_level=difficulty, num_regions=num_regions,
+            prefetched_decoys=prefetched_decoys)
         print(f"⏱️  [TIMING] puzzle_generator.create_puzzle: {_time.perf_counter() - _t_puzzle:.2f}s")
 
         # Generate unique game ID

@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 import random
 import time as _time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.unsplash_api import UnsplashAPI
 from models.image_processor import ImageProcessor
 from config import Config
@@ -23,7 +24,55 @@ class PuzzleGenerator:
         self.unsplash_api = UnsplashAPI()
         print("✅ Puzzle Generator initialized")
 
-    def create_puzzle(self, image, difficulty_level=1, num_regions=1):
+    def _get_difficulty_queries(self, difficulty_level):
+        """Return the Unsplash query pool for a given difficulty level."""
+        if difficulty_level <= 2:
+            return ['flowers', 'balloons', 'candy', 'fruits', 'birds']
+        elif difficulty_level == 3:
+            return ['butterflies', 'parrots', 'coral reef', 'sunflowers', 'koi fish']
+        else:
+            return ['autumn leaves', 'tropical flowers', 'feathers', 'peacock', 'mosaic']
+
+    def prefetch_all_images(self, query, difficulty_level, num_regions):
+        """
+        Fetch the main puzzle image and all decoy images in parallel.
+        Call this before create_puzzle to eliminate sequential Unsplash waits.
+
+        Returns:
+            tuple: (main_image, fetched_url, decoy_images)
+                   main_image is None if fetch failed.
+        """
+        num_pieces = Config.DIFFICULTY_LEVELS[difficulty_level]['pieces']
+        actual_regions = max(1, min(int(num_regions), 4, num_pieces - 1))
+        decoy_count = max(6 - actual_regions, 2)
+        queries = self._get_difficulty_queries(difficulty_level)
+
+        def fetch_main():
+            _t = _time.perf_counter()
+            img, url = self.unsplash_api.get_random_image(
+                query=query, orientation='landscape')
+            print(f"⏱️  [TIMING] Unsplash main image fetch: {_time.perf_counter() - _t:.2f}s")
+            return img, url
+
+        def fetch_decoy(i):
+            q = random.choice(queries)
+            _t = _time.perf_counter()
+            img, _ = self.unsplash_api.get_random_image(query=q)
+            print(f"⏱️  [TIMING]   decoy {i+1}/{decoy_count} Unsplash fetch: {_time.perf_counter() - _t:.2f}s")
+            return img
+
+        _t_all = _time.perf_counter()
+        with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
+            main_future = executor.submit(fetch_main)
+            decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
+
+        main_image, fetched_url = main_future.result()
+        decoy_images = [f.result() for f in decoy_futures]
+        print(f"⏱️  [TIMING] All images fetched in parallel: {_time.perf_counter() - _t_all:.2f}s")
+
+        return main_image, fetched_url, decoy_images
+
+    def create_puzzle(self, image, difficulty_level=1, num_regions=1, prefetched_decoys=None):
         """
         Create a complete puzzle game from an image.
 
@@ -103,7 +152,8 @@ class PuzzleGenerator:
         decoy_pieces = self._generate_decoy_pieces(
             piece_width, piece_height,
             count=decoy_count,
-            difficulty_level=difficulty_level
+            difficulty_level=difficulty_level,
+            prefetched_images=prefetched_decoys
         )
         print(f"⏱️  [TIMING] _generate_decoy_pieces ({decoy_count} decoys): {_time.perf_counter() - _t_decoys:.2f}s")
 
@@ -214,53 +264,50 @@ class PuzzleGenerator:
 
         return pieces
 
-    def _generate_decoy_pieces(self, width, height, count=4, difficulty_level=1):
+    def _generate_decoy_pieces(self, width, height, count=4, difficulty_level=1,
+                               prefetched_images=None):
         """
-        Generate decoy pieces from random images
+        Generate decoy pieces. If prefetched_images is provided (from prefetch_all_images),
+        the download step is skipped and images are only cropped. Otherwise fetches in parallel.
 
         Args:
             width: width of pieces
             height: height of pieces
             count: number of decoys to generate
             difficulty_level: affects how similar decoys are
+            prefetched_images: optional list of pre-downloaded numpy images
 
         Returns:
             list: list of decoy pieces
         """
-        decoys = []
+        queries = self._get_difficulty_queries(difficulty_level)
 
-        # Determine query based on difficulty
-        if difficulty_level <= 2:
-            # Easy: colorful, fun, kid-friendly images
-            queries = ['flowers', 'balloons', 'candy', 'fruits', 'birds']
-        elif difficulty_level == 3:
-            # Medium: colorful nature and animals
-            queries = ['butterflies', 'parrots', 'coral reef', 'sunflowers', 'koi fish']
-        else:
-            # Hard: colorful textures that are trickier to distinguish
-            queries = ['autumn leaves', 'tropical flowers', 'feathers', 'peacock', 'mosaic']
-
-        for i in range(count):
+        def process_one(i):
             try:
-                # Get random image from Unsplash
-                query = random.choice(queries)
-                _t_decoy_i = _time.perf_counter()
-                random_image, _ = self.unsplash_api.get_random_image(query=query)
-                print(f"⏱️  [TIMING]   decoy {i+1}/{count} Unsplash fetch: {_time.perf_counter() - _t_decoy_i:.2f}s")
-
-                if random_image is None:
-                    print(f"⚠️ Failed to get image {i+1}, using fallback")
-                    random_image = self._create_fallback_decoy(width, height)
-
-                # Extract random crop from the image
-                decoy_piece = self._extract_random_crop(
-                    random_image, width, height)
-
-                decoys.append(decoy_piece)
-
+                raw_image = prefetched_images[i] if prefetched_images else None
+                if raw_image is None:
+                    query = random.choice(queries)
+                    _t = _time.perf_counter()
+                    raw_image, _ = self.unsplash_api.get_random_image(query=query)
+                    print(f"⏱️  [TIMING]   decoy {i+1}/{count} Unsplash fetch: {_time.perf_counter() - _t:.2f}s")
+                if raw_image is None:
+                    print(f"⚠️ Failed to get decoy image {i+1}, using fallback")
+                    return self._create_fallback_decoy(width, height)
+                return self._extract_random_crop(raw_image, width, height)
             except Exception as e:
                 print(f"⚠️ Error generating decoy {i+1}: {e}")
-                decoys.append(self._create_fallback_decoy(width, height))
+                return self._create_fallback_decoy(width, height)
+
+        if prefetched_images:
+            # Images already downloaded — just crop, no threads needed
+            decoys = [process_one(i) for i in range(count)]
+        else:
+            # No prefetch — fetch all in parallel
+            with ThreadPoolExecutor(max_workers=count) as executor:
+                futures = {executor.submit(process_one, i): i for i in range(count)}
+                decoys = [None] * count
+                for future in as_completed(futures):
+                    decoys[futures[future]] = future.result()
 
         return decoys
 
