@@ -229,7 +229,7 @@ class UnsplashAPI:
             headers = {'Authorization': f'Client-ID {self.access_key}'}
             params = {'count': 1}
 
-            response = self.session.get(
+            response = _get_thread_session().get(
                 url, headers=headers, params=params, timeout=5)
 
             return response.status_code == 200
