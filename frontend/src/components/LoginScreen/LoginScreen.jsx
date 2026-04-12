@@ -42,10 +42,22 @@ const LoginScreen = ({ onLogin, onGuest, onGoSignup }) => {
           Interactive Educational Puzzles utilizing Computer Vision &amp; Deep Learning
         </p>
         <div className="auth-brand-features">
-          <div className="auth-brand-feature"><span>🤖</span><span>CV-powered validation</span></div>
-          <div className="auth-brand-feature"><span>🧠</span><span>Deep Learning analysis</span></div>
-          <div className="auth-brand-feature"><span>🎨</span><span>Beautiful real-world images</span></div>
-          <div className="auth-brand-feature"><span>📊</span><span>Track your progress</span></div>
+          <div className="auth-brand-feature">
+            <span>🤖</span>
+            <span>CV-powered validation</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>🧠</span>
+            <span>Deep Learning analysis</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>🎨</span>
+            <span>Beautiful real-world images</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>📊</span>
+            <span>Track your progress</span>
+          </div>
         </div>
       </motion.div>
 
@@ -98,7 +110,9 @@ const LoginScreen = ({ onLogin, onGuest, onGoSignup }) => {
             </motion.button>
           </form>
 
-          <div className="auth-divider"><span>or</span></div>
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
 
           <motion.button
             className="btn-auth-guest"
@@ -112,7 +126,9 @@ const LoginScreen = ({ onLogin, onGuest, onGoSignup }) => {
 
           <p className="auth-switch">
             Don't have an account?{' '}
-            <button className="link-btn" onClick={onGoSignup}>Sign up</button>
+            <button className="link-btn" onClick={onGoSignup}>
+              Sign up
+            </button>
           </p>
         </motion.div>
       </div>

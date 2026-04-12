@@ -8,7 +8,14 @@ import './EditProfileScreen.css';
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame, onDeleteAccount }) => {
+const EditProfileScreen = ({
+  user,
+  onUserUpdate,
+  onLogout,
+  onHistory,
+  onNewGame,
+  onDeleteAccount,
+}) => {
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar_id ?? 1);
   const [avatarLoading, setAvatarLoading] = useState(false);
 
@@ -132,7 +139,7 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
               <input
                 type="password"
                 value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
+                onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
                 disabled={passwordLoading}
               />
@@ -142,7 +149,7 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
               <input
                 type="password"
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
                 disabled={passwordLoading}
               />
@@ -152,7 +159,7 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"
                 disabled={passwordLoading}
               />
@@ -176,7 +183,8 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
         >
           <h2 className="edit-card-title edit-card-title--danger">Delete Account</h2>
           <p className="danger-description">
-            This will permanently delete your account and all your game history. This cannot be undone.
+            This will permanently delete your account and all your game history. This cannot be
+            undone.
           </p>
 
           {!showDeleteConfirm ? (
@@ -190,7 +198,7 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
                 <input
                   type="password"
                   value={deletePassword}
-                  onChange={e => setDeletePassword(e.target.value)}
+                  onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="Your password"
                   disabled={deleteLoading}
                 />
@@ -198,7 +206,10 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
               <div className="delete-confirm-actions">
                 <button
                   className="btn-cancel"
-                  onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeletePassword('');
+                  }}
                   disabled={deleteLoading}
                 >
                   Cancel
@@ -220,18 +231,18 @@ const EditProfileScreen = ({ user, onUserUpdate, onLogout, onHistory, onNewGame,
 };
 
 EditProfileScreen.propTypes = {
-  user:            PropTypes.object.isRequired,
-  onUserUpdate:    PropTypes.func.isRequired,
-  onLogout:        PropTypes.func,
-  onHistory:       PropTypes.func,
-  onNewGame:       PropTypes.func,
+  user: PropTypes.object.isRequired,
+  onUserUpdate: PropTypes.func.isRequired,
+  onLogout: PropTypes.func,
+  onHistory: PropTypes.func,
+  onNewGame: PropTypes.func,
   onDeleteAccount: PropTypes.func,
 };
 
 EditProfileScreen.defaultProps = {
-  onLogout:        () => {},
-  onHistory:       () => {},
-  onNewGame:       () => {},
+  onLogout: () => {},
+  onHistory: () => {},
+  onNewGame: () => {},
   onDeleteAccount: () => {},
 };
 

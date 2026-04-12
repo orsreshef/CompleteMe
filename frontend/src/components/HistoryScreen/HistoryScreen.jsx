@@ -19,8 +19,9 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => 
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.getHistory()
-      .then(data => setEntries(data.history))
+    api
+      .getHistory()
+      .then((data) => setEntries(data.history))
       .catch(() => setError('Failed to load history.'))
       .finally(() => setLoading(false));
   }, []);
@@ -35,7 +36,13 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => 
 
   return (
     <div className="history-screen">
-      <UserBar user={user} onLogout={onLogout} onHistory={() => {}} onNewGame={onNewGame} onEditProfile={onEditProfile} />
+      <UserBar
+        user={user}
+        onLogout={onLogout}
+        onHistory={() => {}}
+        onNewGame={onNewGame}
+        onEditProfile={onEditProfile}
+      />
       <div className="history-container">
         {/* Header */}
         <motion.div
@@ -79,9 +86,7 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => 
           </div>
         )}
 
-        {error && (
-          <div className="history-error">{error}</div>
-        )}
+        {error && <div className="history-error">{error}</div>}
 
         {!loading && !error && entries.length === 0 && (
           <motion.div
@@ -112,10 +117,11 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => 
               >
                 {/* Thumbnail */}
                 <div className="history-card-thumb">
-                  {entry.image_url
-                    ? <img src={entry.image_url} alt="Puzzle" />
-                    : <span className="history-card-thumb-placeholder">🧩</span>
-                  }
+                  {entry.image_url ? (
+                    <img src={entry.image_url} alt="Puzzle" />
+                  ) : (
+                    <span className="history-card-thumb-placeholder">🧩</span>
+                  )}
                 </div>
 
                 {/* Info */}
@@ -148,18 +154,18 @@ const HistoryScreen = ({ user, onBack, onLogout, onNewGame, onEditProfile }) => 
 };
 
 HistoryScreen.propTypes = {
-  user:      PropTypes.object,
-  onBack:    PropTypes.func,
-  onLogout:  PropTypes.func,
-  onNewGame:     PropTypes.func,
+  user: PropTypes.object,
+  onBack: PropTypes.func,
+  onLogout: PropTypes.func,
+  onNewGame: PropTypes.func,
   onEditProfile: PropTypes.func,
 };
 
 HistoryScreen.defaultProps = {
-  user:          null,
-  onBack:        () => {},
-  onLogout:      () => {},
-  onNewGame:     () => {},
+  user: null,
+  onBack: () => {},
+  onLogout: () => {},
+  onNewGame: () => {},
   onEditProfile: () => {},
 };
 

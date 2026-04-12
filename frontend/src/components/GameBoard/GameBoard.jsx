@@ -64,9 +64,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
 
     setPlacements((prev) => {
       // Remove draggedPiece from any zone it was already in
-      const next = Object.fromEntries(
-        Object.entries(prev).filter(([, v]) => v !== draggedPiece)
-      );
+      const next = Object.fromEntries(Object.entries(prev).filter(([, v]) => v !== draggedPiece));
       next[zoneIndex] = draggedPiece;
       return next;
     });
@@ -192,7 +190,11 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
               className={`btn-hint ${!hintEnabled ? 'btn-hint--disabled' : ''}`}
               onClick={handleHint}
               disabled={!hintEnabled || isValidating}
-              title={!hintEnabled ? `Fill ${emptyZones.length - 1} more piece${emptyZones.length - 1 !== 1 ? 's' : ''} to unlock the hint` : 'Get a hint for the last piece'}
+              title={
+                !hintEnabled
+                  ? `Fill ${emptyZones.length - 1} more piece${emptyZones.length - 1 !== 1 ? 's' : ''} to unlock the hint`
+                  : 'Get a hint for the last piece'
+              }
             >
               💡 Hint
             </button>
@@ -220,12 +222,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
           transition={{ delay: 0.25 }}
         >
           <div className="puzzle-wrapper">
-            <img
-              className="puzzle-img"
-              src={puzzle_image}
-              alt="Puzzle"
-              draggable={false}
-            />
+            <img className="puzzle-img" src={puzzle_image} alt="Puzzle" draggable={false} />
 
             {missing_positions.map((pos, zoneIndex) => {
               const isFilled = placements.hasOwnProperty(zoneIndex);
@@ -280,11 +277,7 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
                   onDragStart={(e) => !isPlaced && handleDragStart(e, idx)}
                   onDragEnd={handleDragEnd}
                 >
-                  <img
-                    src={optionBase64}
-                    alt={`Option ${idx + 1}`}
-                    draggable={false}
-                  />
+                  <img src={optionBase64} alt={`Option ${idx + 1}`} draggable={false} />
                   {isPlaced && <div className="piece-placed-overlay">✓</div>}
                   {!isPlaced && <div className="piece-number">{idx + 1}</div>}
                 </div>

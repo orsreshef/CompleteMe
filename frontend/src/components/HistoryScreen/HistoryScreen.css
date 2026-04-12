@@ -30,7 +30,6 @@
   margin: 0;
 }
 
-
 /* Summary stats */
 .history-stats {
   display: flex;
@@ -81,7 +80,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .history-error {

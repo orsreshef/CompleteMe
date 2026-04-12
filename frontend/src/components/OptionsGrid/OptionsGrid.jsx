@@ -8,14 +8,14 @@ const OptionsGrid = ({ options, selectedOption, onSelect, disabled }) => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   return (
@@ -39,18 +39,14 @@ const OptionsGrid = ({ options, selectedOption, onSelect, disabled }) => {
           >
             <div className="option-number">{index + 1}</div>
             <div className="option-image-wrapper">
-              <img
-                src={option}
-                alt={`Option ${index + 1}`}
-                className="option-image"
-              />
+              <img src={option} alt={`Option ${index + 1}`} className="option-image" />
             </div>
             {selectedOption === index && (
               <motion.div
                 className="selection-indicator"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               >
                 ✓
               </motion.div>

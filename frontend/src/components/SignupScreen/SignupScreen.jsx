@@ -6,19 +6,19 @@ import api from '../../services/api';
 
 // Placeholder avatars — will be replaced with real images in a future update
 const AVATARS = [
-  { id: 1, emoji: '🦁', label: 'Lion'      },
-  { id: 2, emoji: '🐼', label: 'Panda'     },
-  { id: 3, emoji: '🦊', label: 'Fox'       },
-  { id: 4, emoji: '🐧', label: 'Penguin'   },
+  { id: 1, emoji: '🦁', label: 'Lion' },
+  { id: 2, emoji: '🐼', label: 'Panda' },
+  { id: 3, emoji: '🦊', label: 'Fox' },
+  { id: 4, emoji: '🐧', label: 'Penguin' },
   { id: 5, emoji: '🦋', label: 'Butterfly' },
 ];
 
 const SignupScreen = ({ onLogin, onGoLogin }) => {
-  const [username, setUsername]   = useState('');
-  const [email, setEmail]         = useState('');
-  const [password, setPassword]   = useState('');
-  const [confirm, setConfirm]     = useState('');
-  const [avatarId, setAvatarId]   = useState(1);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [avatarId, setAvatarId] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
@@ -76,10 +76,22 @@ const SignupScreen = ({ onLogin, onGoLogin }) => {
           Interactive Educational Puzzles utilizing Computer Vision &amp; Deep Learning
         </p>
         <div className="auth-brand-features">
-          <div className="auth-brand-feature"><span>🤖</span><span>CV-powered validation</span></div>
-          <div className="auth-brand-feature"><span>🧠</span><span>Deep Learning analysis</span></div>
-          <div className="auth-brand-feature"><span>🎨</span><span>Beautiful real-world images</span></div>
-          <div className="auth-brand-feature"><span>📊</span><span>Track your progress</span></div>
+          <div className="auth-brand-feature">
+            <span>🤖</span>
+            <span>CV-powered validation</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>🧠</span>
+            <span>Deep Learning analysis</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>🎨</span>
+            <span>Beautiful real-world images</span>
+          </div>
+          <div className="auth-brand-feature">
+            <span>📊</span>
+            <span>Track your progress</span>
+          </div>
         </div>
       </motion.div>
 
@@ -91,7 +103,9 @@ const SignupScreen = ({ onLogin, onGoLogin }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
         >
-          <button className="btn-back" onClick={onGoLogin}>← Back to Sign In</button>
+          <button className="btn-back" onClick={onGoLogin}>
+            ← Back to Sign In
+          </button>
           <h2 className="auth-title">Create your account</h2>
           <p className="auth-subtitle">Join Complete Me and start solving puzzles</p>
 
@@ -194,7 +208,9 @@ const SignupScreen = ({ onLogin, onGoLogin }) => {
 
           <p className="auth-switch">
             Already have an account?{' '}
-            <button className="link-btn" onClick={onGoLogin}>Sign in</button>
+            <button className="link-btn" onClick={onGoLogin}>
+              Sign in
+            </button>
           </p>
         </motion.div>
       </div>

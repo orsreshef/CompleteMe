@@ -116,7 +116,9 @@
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 /* Coloured top stripe */
@@ -133,7 +135,9 @@
 
 .method-card.active {
   border-color: var(--method-color);
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06), var(--shadow-md);
+  box-shadow:
+    0 0 0 4px rgba(0, 0, 0, 0.06),
+    var(--shadow-md);
 }
 
 .method-emoji {
@@ -215,7 +219,9 @@
   border-radius: 50px;
   outline: none;
   font-family: 'Poppins', sans-serif;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   text-align: center;
   color: var(--text-primary);
 }
@@ -330,7 +336,9 @@
   align-items: center;
   gap: 0.3rem;
   position: relative;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   box-shadow: var(--shadow-sm);
 }
 

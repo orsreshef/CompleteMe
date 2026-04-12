@@ -45,18 +45,18 @@ const UserBar = ({ user, onLogout, onHistory, onNewGame, onEditProfile }) => (
 );
 
 UserBar.propTypes = {
-  user:          PropTypes.object,
-  onLogout:      PropTypes.func,
-  onHistory:     PropTypes.func,
-  onNewGame:     PropTypes.func,
+  user: PropTypes.object,
+  onLogout: PropTypes.func,
+  onHistory: PropTypes.func,
+  onNewGame: PropTypes.func,
   onEditProfile: PropTypes.func,
 };
 
 UserBar.defaultProps = {
-  user:          null,
-  onLogout:      () => {},
-  onHistory:     () => {},
-  onNewGame:     () => {},
+  user: null,
+  onLogout: () => {},
+  onHistory: () => {},
+  onNewGame: () => {},
   onEditProfile: () => {},
 };
 

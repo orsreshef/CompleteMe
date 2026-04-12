@@ -15,7 +15,7 @@ class ApiService {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);

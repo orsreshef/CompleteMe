@@ -4,15 +4,15 @@ import './ValidationModal.css';
 
 const getConfidenceColor = (score) => {
   if (score >= 0.85) return '#10b981';
-  if (score >= 0.70) return '#3b82f6';
-  if (score >= 0.50) return '#f59e0b';
+  if (score >= 0.7) return '#3b82f6';
+  if (score >= 0.5) return '#f59e0b';
   return '#ef4444';
 };
 
 const getConfidenceLabel = (score) => {
   if (score >= 0.85) return 'Excellent';
-  if (score >= 0.70) return 'Good';
-  if (score >= 0.50) return 'Moderate';
+  if (score >= 0.7) return 'Good';
+  if (score >= 0.5) return 'Moderate';
   return 'Low';
 };
 
@@ -77,9 +77,7 @@ const ValidationModal = ({ result, onClose }) => {
           </motion.div>
 
           {/* Title */}
-          <h2 className="modal-title">
-            {is_correct ? 'Correct!' : 'Not Quite Right'}
-          </h2>
+          <h2 className="modal-title">{is_correct ? 'Correct!' : 'Not Quite Right'}</h2>
 
           {/* Message */}
           <p className="modal-message">
@@ -88,8 +86,8 @@ const ValidationModal = ({ result, onClose }) => {
                 ? 'Amazing! All pieces are in the right place!'
                 : 'Amazing work! You found the correct piece!'
               : isMultiRegion
-              ? 'Some pieces are wrong. Try again!'
-              : "That's not the right piece. Try again!"}
+                ? 'Some pieces are wrong. Try again!'
+                : "That's not the right piece. Try again!"}
           </p>
 
           {/* Multi-region: per-zone results */}
@@ -104,9 +102,7 @@ const ValidationModal = ({ result, onClose }) => {
                   >
                     <span className="region-result-icon">{r.is_correct ? '✓' : '✗'}</span>
                     <span className="region-result-label">Zone {r.zone_index + 1}</span>
-                    <span className="region-result-pct">
-                      {(r.confidence * 100).toFixed(0)}%
-                    </span>
+                    <span className="region-result-pct">{(r.confidence * 100).toFixed(0)}%</span>
                   </div>
                 ))}
               </div>

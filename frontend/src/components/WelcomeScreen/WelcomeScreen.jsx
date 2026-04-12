@@ -22,16 +22,24 @@ const REGION_EMOJIS = {
 
 const AVATARS = { 1: '🦁', 2: '🐼', 3: '🦊', 4: '🐧', 5: '🦋' };
 
-const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistory, onNewGame, onEditProfile }) => {
+const WelcomeScreen = ({
+  onStartGame,
+  difficultyLevels,
+  user,
+  onLogout,
+  onHistory,
+  onNewGame,
+  onEditProfile,
+}) => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(null);
   const [selectedRegions, setSelectedRegions] = useState(null);
 
   const defaultLevels = {
-    1: { pieces: 2,  name: 'Beginner' },
-    2: { pieces: 4,  name: 'Easy'     },
-    3: { pieces: 8,  name: 'Medium'   },
-    4: { pieces: 16, name: 'Hard'     },
-    5: { pieces: 32, name: 'Expert'   },
+    1: { pieces: 2, name: 'Beginner' },
+    2: { pieces: 4, name: 'Easy' },
+    3: { pieces: 8, name: 'Medium' },
+    4: { pieces: 16, name: 'Hard' },
+    5: { pieces: 32, name: 'Expert' },
   };
 
   const levels = difficultyLevels || defaultLevels;
@@ -61,7 +69,13 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
 
   return (
     <div className="welcome-screen">
-      <UserBar user={user} onLogout={onLogout} onHistory={onHistory} onNewGame={onNewGame} onEditProfile={onEditProfile} />
+      <UserBar
+        user={user}
+        onLogout={onLogout}
+        onHistory={onHistory}
+        onNewGame={onNewGame}
+        onEditProfile={onEditProfile}
+      />
 
       <motion.div
         className="welcome-container"
@@ -78,7 +92,9 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
         >
           <div className="puzzle-icon">🧩</div>
           <h1 className="welcome-title">Complete Me</h1>
-          <p className="welcome-subtitle">Interactive Educational Puzzles utilizing CV &amp; Deep Learning</p>
+          <p className="welcome-subtitle">
+            Interactive Educational Puzzles utilizing CV &amp; Deep Learning
+          </p>
         </motion.div>
 
         {/* Step 1 — Difficulty */}
@@ -231,22 +247,22 @@ const WelcomeScreen = ({ onStartGame, difficultyLevels, user, onLogout, onHistor
 };
 
 WelcomeScreen.propTypes = {
-  onStartGame:      PropTypes.func.isRequired,
+  onStartGame: PropTypes.func.isRequired,
   difficultyLevels: PropTypes.object,
-  user:             PropTypes.object,
-  onLogout:         PropTypes.func,
-  onHistory:        PropTypes.func,
-  onNewGame:        PropTypes.func,
-  onEditProfile:    PropTypes.func,
+  user: PropTypes.object,
+  onLogout: PropTypes.func,
+  onHistory: PropTypes.func,
+  onNewGame: PropTypes.func,
+  onEditProfile: PropTypes.func,
 };
 
 WelcomeScreen.defaultProps = {
   difficultyLevels: null,
-  user:             null,
-  onLogout:         () => {},
-  onHistory:        () => {},
-  onNewGame:        () => {},
-  onEditProfile:    () => {},
+  user: null,
+  onLogout: () => {},
+  onHistory: () => {},
+  onNewGame: () => {},
+  onEditProfile: () => {},
 };
 
 export default WelcomeScreen;

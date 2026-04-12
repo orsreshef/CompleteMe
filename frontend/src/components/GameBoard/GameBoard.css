@@ -194,7 +194,9 @@
   border: 3px dashed rgba(255, 255, 255, 0.55);
   border-radius: 4px;
   overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   box-sizing: border-box;
 }
 
@@ -288,7 +290,11 @@
   overflow: hidden;
   border: 3px solid #e2e8f0;
   cursor: grab;
-  transition: border-color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    opacity 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
   flex-shrink: 0;
 }
 

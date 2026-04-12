@@ -3,18 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './ImageSelector.css';
 
 const CATEGORIES = [
-  { id: 'animals',     label: 'Animals',     emoji: '🐾', color: '#10b981' },
-  { id: 'space',       label: 'Space',        emoji: '🚀', color: '#6366f1' },
-  { id: 'candy',       label: 'Candy',        emoji: '🍬', color: '#84cc16' },
-  { id: 'ocean',       label: 'Ocean',        emoji: '🐠', color: '#06b6d4' },
-  { id: 'flowers',     label: 'Flowers',      emoji: '🌸', color: '#ec4899' },
-  { id: 'trains',      label: 'Trains',       emoji: '🚂', color: '#f59e0b' },
-  { id: 'butterflies', label: 'Butterflies',  emoji: '🦋', color: '#8b5cf6' },
-  { id: 'lions',       label: 'Safari',       emoji: '🦁', color: '#f97316' },
-  { id: 'beach',       label: 'Beach',        emoji: '🏖️', color: '#0ea5e9' },
-  { id: 'ice cream',   label: 'Ice Cream',    emoji: '🍦', color: '#f472b6' },
-  { id: 'rainbow',     label: 'Rainbow',      emoji: '🌈', color: '#a855f7' },
-  { id: 'toys',        label: 'Toys',         emoji: '🧸', color: '#ef4444' },
+  { id: 'animals', label: 'Animals', emoji: '🐾', color: '#10b981' },
+  { id: 'space', label: 'Space', emoji: '🚀', color: '#6366f1' },
+  { id: 'candy', label: 'Candy', emoji: '🍬', color: '#84cc16' },
+  { id: 'ocean', label: 'Ocean', emoji: '🐠', color: '#06b6d4' },
+  { id: 'flowers', label: 'Flowers', emoji: '🌸', color: '#ec4899' },
+  { id: 'trains', label: 'Trains', emoji: '🚂', color: '#f59e0b' },
+  { id: 'butterflies', label: 'Butterflies', emoji: '🦋', color: '#8b5cf6' },
+  { id: 'lions', label: 'Safari', emoji: '🦁', color: '#f97316' },
+  { id: 'beach', label: 'Beach', emoji: '🏖️', color: '#0ea5e9' },
+  { id: 'ice cream', label: 'Ice Cream', emoji: '🍦', color: '#f472b6' },
+  { id: 'rainbow', label: 'Rainbow', emoji: '🌈', color: '#a855f7' },
+  { id: 'toys', label: 'Toys', emoji: '🧸', color: '#ef4444' },
 ];
 
 const SEARCH_SUGGESTIONS = ['cats', 'robots', 'butterflies', 'trains', 'dolphins', 'mountains'];
@@ -105,7 +105,6 @@ const ImageSelector = ({ difficulty, difficultyName, regionCount, onStartGame, o
             <h1 className="selector-title">Pick Your Picture!</h1>
             <p className="selector-subtitle">How do you want to find your puzzle image?</p>
           </div>
-
         </motion.div>
 
         {/* Method Cards */}
@@ -152,7 +151,8 @@ const ImageSelector = ({ difficulty, difficultyName, regionCount, onStartGame, o
           transition={{ delay: 0.4 }}
         >
           <span className="difficulty-badge">
-            {difficultyName} Level &middot; {regionCount} missing {regionCount === 1 ? 'piece' : 'pieces'}
+            {difficultyName} Level &middot; {regionCount} missing{' '}
+            {regionCount === 1 ? 'piece' : 'pieces'}
           </span>
         </motion.div>
 

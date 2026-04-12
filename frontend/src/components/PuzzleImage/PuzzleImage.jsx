@@ -13,18 +13,12 @@ const PuzzleImage = ({ puzzleImage, difficulty }) => {
       <div className="puzzle-card">
         <div className="puzzle-header">
           <span className="puzzle-label">🎯 Find the missing piece:</span>
-          <span className="puzzle-difficulty">
-            {difficulty.pieces} pieces puzzle
-          </span>
+          <span className="puzzle-difficulty">{difficulty.pieces} pieces puzzle</span>
         </div>
 
         <div className="puzzle-image-wrapper">
-          <img
-            src={puzzleImage}
-            alt="Puzzle with missing piece"
-            className="puzzle-image"
-          />
-          
+          <img src={puzzleImage} alt="Puzzle with missing piece" className="puzzle-image" />
+
           {/* Decorative border */}
           <div className="puzzle-border"></div>
         </div>

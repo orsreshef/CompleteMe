@@ -9,7 +9,7 @@ const LoadingScreen = ({ difficulty }) => {
       2: 'Easy',
       3: 'Medium',
       4: 'Hard',
-      5: 'Expert'
+      5: 'Expert',
     };
     return names[level] || 'Unknown';
   };
@@ -19,7 +19,7 @@ const LoadingScreen = ({ difficulty }) => {
     '✂️ Cutting the puzzle pieces...',
     '🤖 Preparing AI validation...',
     '🎯 Creating your challenge...',
-    '✨ Almost ready...'
+    '✨ Almost ready...',
   ];
 
   const [currentMessage, setCurrentMessage] = React.useState(0);
@@ -41,12 +41,12 @@ const LoadingScreen = ({ difficulty }) => {
             className="puzzle-piece piece-1"
             animate={{
               rotate: [0, 360],
-              scale: [1, 1.2, 1]
+              scale: [1, 1.2, 1],
             }}
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           >
             🧩
@@ -55,13 +55,13 @@ const LoadingScreen = ({ difficulty }) => {
             className="puzzle-piece piece-2"
             animate={{
               rotate: [360, 0],
-              scale: [1, 1.2, 1]
+              scale: [1, 1.2, 1],
             }}
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.3
+              ease: 'easeInOut',
+              delay: 0.3,
             }}
           >
             🧩
@@ -70,13 +70,13 @@ const LoadingScreen = ({ difficulty }) => {
             className="puzzle-piece piece-3"
             animate={{
               rotate: [0, 360],
-              scale: [1, 1.2, 1]
+              scale: [1, 1.2, 1],
             }}
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.6
+              ease: 'easeInOut',
+              delay: 0.6,
             }}
           >
             🧩
@@ -115,7 +115,7 @@ const LoadingScreen = ({ difficulty }) => {
             animate={{ width: '100%' }}
             transition={{
               duration: 3,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           />
         </div>

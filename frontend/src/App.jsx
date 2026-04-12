@@ -30,8 +30,9 @@ function App() {
   useEffect(() => {
     loadConfig();
     // Try to restore session from existing JWT cookie
-    api.getMe()
-      .then(data => {
+    api
+      .getMe()
+      .then((data) => {
         setUser(data.user);
         navigate('/game');
       })
@@ -87,9 +88,8 @@ function App() {
 
       toast.success('Puzzle created! Find the missing piece! 🧩', {
         position: 'top-center',
-        autoClose: 3000
+        autoClose: 3000,
       });
-
     } catch (error) {
       console.error('❌ Failed to create puzzle:', error);
       toast.error('Failed to create puzzle. Please try again.');
@@ -129,7 +129,6 @@ function App() {
     setLastScore(scoreEarned);
     setShowConfetti(true);
     navigate('/finished');
-
 
     // Refresh user profile so the score updates immediately in the UI
     if (user) {
@@ -179,12 +178,7 @@ function App() {
         />
         <Route
           path="/signup"
-          element={
-            <SignupScreen
-              onLogin={handleLogin}
-              onGoLogin={() => navigate('/login')}
-            />
-          }
+          element={<SignupScreen onLogin={handleLogin} onGoLogin={() => navigate('/login')} />}
         />
 
         {/* Main game flow */}
@@ -207,28 +201,29 @@ function App() {
           element={
             <ImageSelector
               difficulty={difficulty}
-              difficultyName={config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`}
+              difficultyName={
+                config?.difficulty_levels?.[difficulty]?.name || `Level ${difficulty}`
+              }
               regionCount={regionCount}
               onStartGame={startGame}
               onBack={() => navigate('/game')}
             />
           }
         />
-        <Route
-          path="/loading"
-          element={<LoadingScreen difficulty={difficulty} />}
-        />
+        <Route path="/loading" element={<LoadingScreen difficulty={difficulty} />} />
         <Route
           path="/play"
           element={
-            gameData
-              ? <GameBoard
-                  gameData={gameData}
-                  difficulty={difficulty}
-                  onRestart={restartGame}
-                  onComplete={handleGameComplete}
-                />
-              : <Navigate to="/" replace />
+            gameData ? (
+              <GameBoard
+                gameData={gameData}
+                difficulty={difficulty}
+                onRestart={restartGame}
+                onComplete={handleGameComplete}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
@@ -249,9 +244,7 @@ function App() {
                 <h1>Amazing Job!</h1>
                 <p>You solved the puzzle!</p>
                 {user && lastScore > 0 && (
-                  <div className="score-earned-badge">
-                    +{lastScore} pts
-                  </div>
+                  <div className="score-earned-badge">+{lastScore} pts</div>
                 )}
                 <button className="btn-primary" onClick={restartGame}>
                   Play Again
@@ -265,15 +258,17 @@ function App() {
         <Route
           path="/history"
           element={
-            user
-              ? <HistoryScreen
-                    user={user}
-                    onBack={() => navigate('/game')}
-                    onLogout={handleLogout}
-                    onNewGame={() => navigate('/game')}
-                    onEditProfile={() => navigate('/profile')}
-                  />
-              : <Navigate to="/login" replace />
+            user ? (
+              <HistoryScreen
+                user={user}
+                onBack={() => navigate('/game')}
+                onLogout={handleLogout}
+                onNewGame={() => navigate('/game')}
+                onEditProfile={() => navigate('/profile')}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 
@@ -281,16 +276,18 @@ function App() {
         <Route
           path="/profile"
           element={
-            user
-              ? <EditProfileScreen
-                  user={user}
-                  onUserUpdate={setUser}
-                  onLogout={handleLogout}
-                  onHistory={() => navigate('/history')}
-                  onNewGame={() => navigate('/game')}
-                  onDeleteAccount={handleLogout}
-                />
-              : <Navigate to="/login" replace />
+            user ? (
+              <EditProfileScreen
+                user={user}
+                onUserUpdate={setUser}
+                onLogout={handleLogout}
+                onHistory={() => navigate('/history')}
+                onNewGame={() => navigate('/game')}
+                onDeleteAccount={handleLogout}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 
