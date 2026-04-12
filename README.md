@@ -246,7 +246,7 @@ Key `.env` variables:
 
 ```
 UNSPLASH_ACCESS_KEY=your_unsplash_key
-DATABASE_URL=postgresql://user:pass@localhost/puzzle_db
+DATABASE_URL=postgresql://your_user:your_password@localhost:5432/puzzle_game_db
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 ```
@@ -283,7 +283,7 @@ Free tier: 50 requests/hour. The game biases queries toward bright, colorful, ki
 
 ```bash
 # With PostgreSQL running locally:
-createdb puzzle_db
+createdb puzzle_game_db
 
 # Flask-SQLAlchemy creates tables automatically on first run
 python app.py
