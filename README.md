@@ -97,29 +97,39 @@ A full-stack application combining:
 
 ### Backend
 
-| Technology              | Purpose                       | Version |
-| ----------------------- | ----------------------------- | ------- |
-| **Python**              | Core language                 | 3.8+    |
-| **Flask**               | Web framework                 | 3.0.0   |
-| **SQLAlchemy**          | ORM / database layer          | 2.x     |
-| **Flask-JWT-Extended**  | JWT authentication            | 4.x     |
-| **Flask-Bcrypt**        | Password hashing              | 1.x     |
-| **Flask-Limiter**       | Rate limiting                 | 3.x     |
-| **PyTorch**             | ResNet50 deep learning        | 2.x     |
-| **OpenCV**              | Computer vision               | 4.8.1   |
-| **NumPy**               | Numerical computing           | 1.24.3  |
-| **scikit-image**        | Image processing / LBP        | 0.22.0  |
-| **Gunicorn**            | Production server             | 21.2.0  |
+| Technology              | Purpose                              | Version  |
+| ----------------------- | ------------------------------------ | -------- |
+| **Python**              | Core language                        | 3.8+     |
+| **Flask**               | Web framework                        | 3.1.2    |
+| **Flask-CORS**          | Cross-origin resource sharing        | 6.0.1    |
+| **Flask-SQLAlchemy**    | ORM / database layer                 | 3.1+     |
+| **Flask-JWT-Extended**  | JWT authentication                   | 4.7+     |
+| **Flask-Bcrypt**        | Password hashing                     | 1.0+     |
+| **Flask-Limiter**       | Rate limiting                        | 3.8+     |
+| **PyTorch**             | ResNet50 deep learning               | 2.9.1    |
+| **Torchvision**         | Pre-trained model weights            | 0.24.1   |
+| **OpenCV**              | Computer vision                      | 4.12.0   |
+| **NumPy**               | Numerical computing                  | 2.2.6    |
+| **Pillow**              | Image manipulation                   | 12.0.0   |
+| **scikit-image**        | Image processing / LBP               | 0.25.2   |
+| **scikit-learn**        | ML utilities / distance metrics      | 1.7.2    |
+| **SciPy**               | Signal processing / distance metrics | 1.16.3   |
+| **PyWavelets**          | Wavelet-based texture analysis       | 1.9.0    |
+| **Requests**            | HTTP client (Unsplash API)           | 2.32.5   |
+| **psycopg2-binary**     | PostgreSQL adapter                   | 2.9+     |
+| **python-dotenv**       | Environment variable management      | 1.2.1    |
+| **Gunicorn**            | Production WSGI server               | 23.0.0   |
 
 ### Frontend
 
-| Technology             | Purpose            | Version  |
-| ---------------------- | ------------------ | -------- |
-| **React**              | UI framework       | 18.2.0   |
-| **React Router DOM**   | Client-side routing| 7.13.1   |
-| **Framer Motion**      | Animations         | 10.16.16 |
-| **React Toastify**     | Notifications      | 9.1.3    |
-| **React Confetti**     | Celebrations       | 6.1.0    |
+| Technology             | Purpose             | Version  |
+| ---------------------- | ------------------- | -------- |
+| **React**              | UI framework        | 18.2.0   |
+| **React Router DOM**   | Client-side routing | 7.13.1   |
+| **Framer Motion**      | Animations          | 10.16.16 |
+| **React Toastify**     | Toast notifications | 9.1.3    |
+| **React Confetti**     | Celebration effects | 6.1.0    |
+| **Axios**              | HTTP client         | 1.6.2    |
 
 ### Database
 
@@ -174,31 +184,33 @@ A full-stack application combining:
 
 ## Computer Vision Algorithms
 
-### Primary: Boundary Matching
+### Validation Flow (every guess)
 
-The core validation strategy. For each black square (missing region), the system extracts thin color strips from the four surrounding edges. It then computes HSV histogram similarity between those strips and the corresponding edges of every candidate piece.
+Every time the user places a piece, the following runs in order:
 
-All 6 candidate pieces are **ranked** by their boundary score. The piece submitted by the user is correct if and only if it has the highest boundary score (rank #1).
+**Step 1 — Boundary Ranking (all 6 candidates)**
+The system extracts thin color strips from the four edges surrounding the black square and computes HSV histogram similarity for every candidate piece. All 6 are ranked; the user is correct if their piece ranks #1.
 
 ```python
 # Simplified boundary matching
-border = extract_border_strip(puzzle_image, zone)       # HSV strip from puzzle
-piece_edge = extract_piece_edge(candidate_piece)        # HSV strip from piece
+border = extract_border_strip(puzzle_image, zone)
+piece_edge = extract_piece_edge(candidate_piece)
 score = cv2.compareHist(border_hist, edge_hist, cv2.HISTCMP_CORREL)
 ```
 
-### Tiebreaker: Comprehensive Validation
+**Step 2 — Comprehensive Validation (user's piece, always)**
+Runs on every guess to produce the confidence score shown in the UI:
 
-When the top two candidates are within a 0.02 margin, a comprehensive analysis is triggered on the tied pieces:
+| Algorithm          | Weight | Technique                               |
+| ------------------ | ------ | --------------------------------------- |
+| **Boundary**       | 35%    | HSV histogram boundary matching         |
+| **Feature (DL)**   | 35%    | ResNet50 cosine similarity (PyTorch)    |
+| **Color**          | 15%    | HSV histogram + K-Means dominant colors |
+| **Texture**        | 10%    | LBP (Local Binary Patterns) + GLCM      |
+| **Edge**           | 5%     | Canny / Sobel edge density              |
 
-| Algorithm          | Technique                         |
-| ------------------ | --------------------------------- |
-| **Feature (DL)**   | ResNet50 cosine similarity        |
-| **Texture**        | LBP (Local Binary Patterns)       |
-| **Color**          | HSV histogram + dominant colors   |
-| **Edge**           | Canny / Hausdorff distance        |
-
-The tiebreaker picks the candidate with the higher comprehensive score.
+**Step 3 — Tiebreaker (only when needed)**
+If the user's piece did not rank #1 but is within 0.02 of the top score (e.g. uniform regions like clear sky or white walls), comprehensive validation also runs on each competing piece. The user wins the tie if their comprehensive score is higher.
 
 ### Why Ranking Instead of Thresholding?
 
@@ -367,6 +379,32 @@ Content-Type: application/json
 }
 ```
 
+#### Get Active Game Stats
+
+```http
+GET /api/stats
+```
+
+```json
+{
+  "active_games": 3,
+  "memory_usage": "~12 MB"
+}
+```
+
+#### Clean Up Finished Game
+
+```http
+POST /api/puzzle/cleanup
+Content-Type: application/json
+
+{ "game_id": "uuid" }
+```
+
+```json
+{ "message": "Game cleaned up" }
+```
+
 #### Get Hint
 
 ```http
@@ -492,10 +530,11 @@ Puzzle creation time dropped by approximately **50%**. What previously took 6–
 
 ### Validation Speed
 
-| Mode              | Trigger                  | Speed    |
-| ----------------- | ------------------------ | -------- |
-| **Boundary only** | No tie in top 2 scores   | < 1 sec  |
-| **Comprehensive** | Top 2 scores within 0.02 | 2–4 sec  |
+| Step                   | Trigger                          | Speed   |
+| ---------------------- | -------------------------------- | ------- |
+| **Boundary ranking**   | Every guess (all 6 candidates)   | < 1 sec |
+| **Comprehensive (x1)** | Every guess (user's piece)       | 2–4 sec |
+| **Comprehensive (x2+)**| Tie within 0.02 margin           | +2–4 sec per competing piece |
 
 ### Scoring
 

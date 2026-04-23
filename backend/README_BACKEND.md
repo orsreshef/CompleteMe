@@ -93,51 +93,29 @@ Content-Type: application/json
 
 ## Computer Vision Algorithms
 
-The validation system uses multiple CV techniques:
+### Validation Flow (every guess)
 
-1. **Deep Feature Extraction** (ResNet50, VGG16)
+**Step 1 — Boundary ranking:** All 6 candidates scored by HSV histogram similarity to edge strips around the black square. User is correct if ranked #1.
 
-   - 30% weight
-   - Most accurate method
+**Step 2 — Comprehensive validation (always):** Runs on the user's piece every guess to produce the displayed confidence score.
 
-2. **Color Analysis** (HSV histograms, color moments)
+| Algorithm             | Weight | Technique                               |
+| --------------------- | ------ | --------------------------------------- |
+| **Boundary**          | 35%    | HSV histogram boundary matching         |
+| **Deep Feature (DL)** | 35%    | ResNet50 cosine similarity (PyTorch)    |
+| **Color**             | 15%    | HSV histogram + K-Means dominant colors |
+| **Texture**           | 10%    | LBP + GLCM                             |
+| **Edge**              | 5%     | Canny / Sobel edge density              |
 
-   - 25% weight
-   - Fast and reliable
+**Step 3 — Tiebreaker (when needed):** If the user's piece is within 0.02 of the top boundary score, comprehensive validation also runs on each competing piece to break the tie.
 
-3. **Texture Analysis** (LBP, GLCM, Gabor filters)
+## Performance
 
-   - 20% weight
-   - Detects patterns
-
-4. **Edge Detection** (Canny, Sobel, Hausdorff distance)
-
-   - 15% weight
-   - Boundary matching
-
-5. **Semantic Analysis** (Object recognition)
-   - 10% weight
-   - Context understanding
-
-## Performance Modes
-
-### Fast Mode
-
-- Uses only feature extraction + color analysis
-- ~2-3 seconds per validation
-- 85-90% accuracy
-
-### Comprehensive Mode (Default)
-
-- Uses all 5 CV techniques
-- ~5-7 seconds per validation
-- 95-98% accuracy
-
-Set in `config.py`:
-
-```python
-FAST_MODE = False  # Set to True for fast mode
-```
+| Step                   | Trigger                         | Speed                        |
+| ---------------------- | ------------------------------- | ---------------------------- |
+| Boundary ranking       | Every guess (all 6 candidates)  | < 1 sec                      |
+| Comprehensive (x1)     | Every guess (user's piece)      | 2–4 sec                      |
+| Comprehensive (x2+)    | Tie within 0.02 margin          | +2–4 sec per competing piece |
 
 ## Project Structure
 
