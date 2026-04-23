@@ -1,0 +1,160 @@
+# ========================
+# Python / Backend
+# ========================
+
+# Virtual Environment
+backend/venv/
+backend/env/
+backend/.venv/
+backend/.env/
+
+# Python cache
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/**/*.py[cod]
+backend/**/*$py.class
+
+# Environment variables
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Flask
+backend/instance/
+backend/.webassets-cache
+
+# Database
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Logs
+backend/logs/
+backend/*.log
+backend/**/*.log
+
+# Testing
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.tox/
+
+# Jupyter Notebook
+backend/.ipynb_checkpoints
+
+# pyenv
+backend/.python-version
+
+# Temporary files
+backend/static/temp/*
+!backend/static/temp/.gitkeep
+
+# IDE
+backend/.vscode/
+backend/.idea/
+backend/*.swp
+backend/*.swo
+backend/*~
+
+# ========================
+# Node / Frontend
+# ========================
+
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Testing
+frontend/coverage/
+
+# Production
+frontend/build/
+frontend/dist/
+
+# Environment variables
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# IDE
+frontend/.vscode/
+frontend/.idea/
+
+# Misc
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# ========================
+# Operating System
+# ========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ========================
+# Project Specific
+# ========================
+
+# Documentation builds
+docs/_build/
+
+# Deployment
+*.pid
+*.seed
+*.pid.lock
+
+# Model files (optional - uncomment if models are too large)
+# backend/**/*.h5
+# backend/**/*.pb
+# backend/**/*.pth
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+
+# ========================
+# Security
+# ========================
+
+# Never commit these!
+*.key
+*.pem
+*.p12
+*.cert
+secrets/
+credentials/
+
+# ========================
+# CI/CD
+# ========================
+
+.github/workflows/secrets.yml
