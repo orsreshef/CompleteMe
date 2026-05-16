@@ -283,7 +283,7 @@ def create_puzzle():
         prefetched_decoys = None
 
         if use_random or 'image' not in data:
-            # Fetch main image + all decoys in parallel
+            print("Fetching main image and decoys in parallel from Unsplash...")
             image, fetched_url, prefetched_decoys = puzzle_generator.prefetch_all_images(
                 query=data.get('query', None),
                 difficulty_level=difficulty,
@@ -294,7 +294,7 @@ def create_puzzle():
                 return jsonify({'error': 'Failed to fetch random image'}), 500
 
         else:
-            # Use uploaded image — decoys will be fetched in parallel inside create_puzzle
+            print("Using uploaded image...")
             image_data = data['image']
             image = base64_to_image(image_data)
 
@@ -302,6 +302,7 @@ def create_puzzle():
                 return jsonify({'error': 'Invalid image data'}), 400
 
         # Create puzzle
+        print(f"Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
         puzzle_data = puzzle_generator.create_puzzle(
             image, difficulty_level=difficulty, num_regions=num_regions,
             prefetched_decoys=prefetched_decoys)
@@ -351,6 +352,7 @@ def create_puzzle():
             'message': 'Puzzle created successfully!'
         }
 
+        print(f"Puzzle created with game_id: {game_id}")
         return jsonify(response), 200
 
     except Exception as e:
@@ -400,6 +402,7 @@ def validate_answer():
 
         game_data = active_games[game_id]
         game_data['attempts'] += 1
+        print(f"Validating {len(placements)} placement(s) for game {game_id}, attempt {game_data['attempts']}...")
 
         puzzle_image = game_data['puzzle_image']
         missing_positions = game_data['missing_positions']
@@ -460,9 +463,11 @@ def validate_answer():
                     )
                     best_competing_conf = max(best_competing_conf, comp_conf)
                 is_match = (confidence >= best_competing_conf)
+                print(f"  Zone {zone_index}: TIE resolved - user {confidence:.3f} vs competitor {best_competing_conf:.3f} -> {'CORRECT' if is_match else 'WRONG'}")
             else:
                 is_match = False
 
+            print(f"  Zone {zone_index}: {'CORRECT' if is_match else 'WRONG'} (rank {rank}, conf {confidence:.3f})")
             region_results.append({
                 'zone_index': zone_index,
                 'is_correct': bool(is_match),

@@ -90,6 +90,7 @@ class PuzzleGenerator:
         # Clamp num_regions: at least 1, at most 4, never >= total pieces
         num_regions = max(1, min(int(num_regions), 4, num_pieces - 1))
 
+        print(f"Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces, {num_regions} missing)")
         # Resize image to standard size
         image = self.image_processor.resize_image(
             image,
@@ -180,6 +181,7 @@ class PuzzleGenerator:
             'grid_cols': grid_cols
         }
 
+        print(f"Puzzle created: {num_regions} region(s), {len(all_options)} options")
         return puzzle_data
 
     def _calculate_grid_dimensions(self, num_pieces):
