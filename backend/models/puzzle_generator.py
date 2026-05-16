@@ -6,7 +6,6 @@ Handles creation of puzzle pieces and game setup
 import numpy as np
 import cv2
 import random
-import time as _time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.unsplash_api import UnsplashAPI
 from models.image_processor import ImageProcessor
@@ -48,28 +47,21 @@ class PuzzleGenerator:
         queries = self._get_difficulty_queries(difficulty_level)
 
         def fetch_main():
-            _t = _time.perf_counter()
             img, url = self.unsplash_api.get_random_image(
                 query=query, orientation='landscape')
-            print(f"⏱️  [TIMING] Unsplash main image fetch: {_time.perf_counter() - _t:.2f}s")
             return img, url
 
         def fetch_decoy(i):
             q = random.choice(queries)
-            _t = _time.perf_counter()
             img, _ = self.unsplash_api.get_random_image(query=q)
-            print(f"⏱️  [TIMING]   decoy {i+1}/{decoy_count} Unsplash fetch: {_time.perf_counter() - _t:.2f}s")
             return img
 
-        _t_all = _time.perf_counter()
         with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
             main_future = executor.submit(fetch_main)
             decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
             # executor.__exit__ waits for all futures before continuing
             main_image, fetched_url = main_future.result()
             decoy_images = [f.result() for f in decoy_futures]
-        print(f"⏱️  [TIMING] All images fetched in parallel: {_time.perf_counter() - _t_all:.2f}s")
-
         return main_image, fetched_url, decoy_images
 
     def create_puzzle(self, image, difficulty_level=1, num_regions=1, prefetched_decoys=None):
@@ -97,8 +89,6 @@ class PuzzleGenerator:
 
         # Clamp num_regions: at least 1, at most 4, never >= total pieces
         num_regions = max(1, min(int(num_regions), 4, num_pieces - 1))
-
-        print(f"🎮 Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces, {num_regions} missing)")
 
         # Resize image to standard size
         image = self.image_processor.resize_image(
@@ -148,14 +138,12 @@ class PuzzleGenerator:
 
         # Pool always has 6 pieces: num_regions correct + (6 - num_regions) decoys
         decoy_count = max(6 - num_regions, 2)
-        _t_decoys = _time.perf_counter()
         decoy_pieces = self._generate_decoy_pieces(
             piece_width, piece_height,
             count=decoy_count,
             difficulty_level=difficulty_level,
             prefetched_images=prefetched_decoys
         )
-        print(f"⏱️  [TIMING] _generate_decoy_pieces ({decoy_count} decoys): {_time.perf_counter() - _t_decoys:.2f}s")
 
         # Combine and shuffle
         all_options = missing_pieces + decoy_pieces
@@ -192,7 +180,6 @@ class PuzzleGenerator:
             'grid_cols': grid_cols
         }
 
-        print(f"✅ Puzzle created: {num_regions} region(s), {len(all_options)} options")
         return puzzle_data
 
     def _calculate_grid_dimensions(self, num_pieces):
@@ -287,9 +274,7 @@ class PuzzleGenerator:
                 raw_image = prefetched_images[i] if prefetched_images else None
                 if raw_image is None:
                     query = random.choice(queries)
-                    _t = _time.perf_counter()
                     raw_image, _ = self.unsplash_api.get_random_image(query=query)
-                    print(f"⏱️  [TIMING]   decoy {i+1}/{count} Unsplash fetch: {_time.perf_counter() - _t:.2f}s")
                 if raw_image is None:
                     print(f"⚠️ Failed to get decoy image {i+1}, using fallback")
                     return self._create_fallback_decoy(width, height)

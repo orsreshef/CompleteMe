@@ -99,7 +99,6 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
       }));
 
       const result = await api.validateAnswer(gameData.game_id, placementsArray);
-      console.log('Validation result:', result);
 
       setValidationResult(result);
       setShowModal(true);

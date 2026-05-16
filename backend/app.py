@@ -280,14 +280,10 @@ def create_puzzle():
         use_random = data.get('use_random_image', True)
         fetched_url = ''
 
-        import time as _time
-        _t0 = _time.perf_counter()
-
         prefetched_decoys = None
 
         if use_random or 'image' not in data:
             # Fetch main image + all decoys in parallel
-            print("📸 Fetching main image and decoys in parallel from Unsplash...")
             image, fetched_url, prefetched_decoys = puzzle_generator.prefetch_all_images(
                 query=data.get('query', None),
                 difficulty_level=difficulty,
@@ -299,7 +295,6 @@ def create_puzzle():
 
         else:
             # Use uploaded image — decoys will be fetched in parallel inside create_puzzle
-            print("📤 Using uploaded image...")
             image_data = data['image']
             image = base64_to_image(image_data)
 
@@ -307,12 +302,9 @@ def create_puzzle():
                 return jsonify({'error': 'Invalid image data'}), 400
 
         # Create puzzle
-        print(f"🎮 Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
-        _t_puzzle = _time.perf_counter()
         puzzle_data = puzzle_generator.create_puzzle(
             image, difficulty_level=difficulty, num_regions=num_regions,
             prefetched_decoys=prefetched_decoys)
-        print(f"⏱️  [TIMING] puzzle_generator.create_puzzle: {_time.perf_counter() - _t_puzzle:.2f}s")
 
         # Generate unique game ID
         import uuid
@@ -332,11 +324,9 @@ def create_puzzle():
         }
 
         # Convert images to base64 for response
-        _t_b64 = _time.perf_counter()
         puzzle_image_b64 = image_to_base64(puzzle_data['puzzle_image'])
         options_b64 = [image_to_base64(option)
                        for option in puzzle_data['options']]
-        print(f"⏱️  [TIMING] base64 encoding ({1 + len(puzzle_data['options'])} images): {_time.perf_counter() - _t_b64:.2f}s")
 
         # Image dimensions (for frontend drop-zone overlay positioning)
         img_h, img_w = puzzle_data['puzzle_image'].shape[:2]
@@ -360,9 +350,6 @@ def create_puzzle():
             },
             'message': 'Puzzle created successfully!'
         }
-
-        print(f"✅ Puzzle created with game_id: {game_id}")
-        print(f"⏱️  [TIMING] Total create_puzzle handler: {_time.perf_counter() - _t0:.2f}s")
 
         return jsonify(response), 200
 
@@ -414,9 +401,6 @@ def validate_answer():
         game_data = active_games[game_id]
         game_data['attempts'] += 1
 
-        print(f"🔍 Validating {len(placements)} placement(s) for game {game_id}...")
-        print(f"   Attempt: {game_data['attempts']}")
-
         puzzle_image = game_data['puzzle_image']
         missing_positions = game_data['missing_positions']
 
@@ -445,7 +429,6 @@ def validate_answer():
             # white walls, clear sky), the comprehensive score breaks the tie.
             TIE_MARGIN = 0.02
 
-            print(f"   Zone {zone_index}: ranking {len(all_options)} options by boundary score...")
             option_boundary_scores = []
             for opt in all_options:
                 _, opt_conf, _ = validator.boundary_matcher.validate_piece_placement(
@@ -456,9 +439,6 @@ def validate_answer():
             user_boundary_score = option_boundary_scores[option_index]
             best_boundary_score = max(option_boundary_scores)
             rank = sum(1 for s in option_boundary_scores if s > user_boundary_score) + 1
-
-            print(f"      Scores: {[f'{s:.3f}' for s in option_boundary_scores]}")
-            print(f"      User option {option_index}: {user_boundary_score:.3f}  rank {rank}/{len(all_options)}")
 
             # Run comprehensive validation for the confidence display (and tie-breaking)
             _, confidence, details = validator.validate_comprehensive(
@@ -480,11 +460,8 @@ def validate_answer():
                     )
                     best_competing_conf = max(best_competing_conf, comp_conf)
                 is_match = (confidence >= best_competing_conf)
-                print(f"      TIE resolved: user {confidence:.3f} vs competitor {best_competing_conf:.3f} → {'CORRECT' if is_match else 'WRONG'}")
             else:
                 is_match = False
-
-            print(f"   Zone {zone_index}: {'✅ CORRECT' if is_match else '❌ WRONG'} (rank {rank}, conf {confidence:.3f})")
 
             region_results.append({
                 'zone_index': zone_index,

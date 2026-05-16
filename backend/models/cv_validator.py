@@ -91,8 +91,6 @@ class CVValidator:
             tuple: (is_match, confidence, validation_details)
         """
         try:
-            print("🔍 Running comprehensive validation...")
-
             validation_results = {}
             weights = {}
 
@@ -131,13 +129,11 @@ class CVValidator:
                 ))
 
             # 1. Boundary matching (HSV histogram + avg color per edge) - weight 0.35
-            print("   📐 Checking boundary matching...")
             _, boundary_conf, boundary_details = self.boundary_matcher.validate_piece_placement(
                 puzzle_image, selected_piece, missing_position
             )
             validation_results['boundary'] = {'score': boundary_conf, 'details': boundary_details}
             weights['boundary'] = 0.35
-            print(f"      Boundary score: {boundary_conf:.3f}")
 
             # 2. Semantic deep learning: context region vs full piece - weight 0.35
             # Extract ResNet50 features from the surrounding puzzle context (the region
@@ -145,7 +141,6 @@ class CVValidator:
             # This detects whether the piece semantically belongs here:
             # e.g. an eye matches a face context, but a flower does not.
             if self.has_deep_learning and self.feature_extractor:
-                print("   🤖 Running semantic deep learning analysis...")
                 try:
                     # Use a large margin so the black hole is a small fraction
                     # of the context region and doesn't dominate ResNet50 features.
@@ -164,7 +159,6 @@ class CVValidator:
                             'method': 'resnet50_semantic_context'
                         }
                         weights['semantic'] = 0.35
-                        print(f"      Semantic score: {semantic_sim:.3f}")
                     else:
                         validation_results['semantic'] = {'score': 0.0}
                         weights['semantic'] = 0.0
@@ -178,7 +172,6 @@ class CVValidator:
 
             # 3. Color comparison on boundary strips - weight 0.15
             # Compare the average BGR color of each puzzle strip to the matching piece strip.
-            print("   🎨 Analyzing colors...")
             try:
                 color_scores = []
                 for pz, pc in strip_pairs:
@@ -189,15 +182,12 @@ class CVValidator:
                 color_sim = float(np.mean(color_scores)) if color_scores else 0.0
                 validation_results['color'] = {'score': color_sim, 'method': 'boundary_color'}
                 weights['color'] = 0.15
-                print(f"      Color score: {color_sim:.3f}")
             except Exception as e:
-                print(f"      ⚠️ Color analysis error: {e}")
                 validation_results['color'] = {'score': 0.0}
                 weights['color'] = 0.0
 
             # 4. Texture comparison (LBP) on boundary strips - weight 0.10
             # Compare LBP histograms of each puzzle strip to the matching piece strip.
-            print("   🔲 Analyzing textures...")
             try:
                 texture_scores = []
                 for pz, pc in strip_pairs:
@@ -211,15 +201,12 @@ class CVValidator:
                 texture_sim = float(np.mean(texture_scores)) if texture_scores else 0.0
                 validation_results['texture'] = {'score': texture_sim, 'method': 'lbp_boundary'}
                 weights['texture'] = 0.10
-                print(f"      Texture score: {texture_sim:.3f}")
             except Exception as e:
-                print(f"      ⚠️ Texture analysis error: {e}")
                 validation_results['texture'] = {'score': 0.0}
                 weights['texture'] = 0.0
 
             # 5. Edge density comparison (Canny) on boundary strips - weight 0.05
             # Compare the edge density of each puzzle strip to the matching piece strip.
-            print("   📏 Detecting edges...")
             try:
                 edge_scores = []
                 for pz, pc in strip_pairs:
@@ -232,9 +219,7 @@ class CVValidator:
                 edge_sim = float(np.mean(edge_scores)) if edge_scores else 0.0
                 validation_results['edges'] = {'score': edge_sim, 'method': 'canny_boundary'}
                 weights['edges'] = 0.05
-                print(f"      Edge score: {edge_sim:.3f}")
             except Exception as e:
-                print(f"      ⚠️ Edge detection error: {e}")
                 validation_results['edges'] = {'score': 0.0}
                 weights['edges'] = 0.0
 
@@ -251,8 +236,6 @@ class CVValidator:
                 confidence = 0.0
 
             is_match = confidence >= threshold
-
-            print(f"   ✅ Overall confidence: {confidence:.3f} ({'MATCH' if is_match else 'NO MATCH'})")
 
             return is_match, confidence, validation_results
 

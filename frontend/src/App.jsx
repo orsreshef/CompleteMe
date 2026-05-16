@@ -53,7 +53,6 @@ function App() {
     try {
       const configData = await api.getConfig();
       setConfig(configData);
-      console.log('✅ Configuration loaded:', configData);
     } catch (error) {
       console.error('❌ Failed to load configuration:', error);
       toast.error('Failed to load game configuration');
@@ -72,16 +71,12 @@ function App() {
     navigate('/loading');
 
     try {
-      console.log(`🎮 Starting game with difficulty ${difficulty}...`, imageParams);
-
       const data = await api.createPuzzle({
         difficulty,
         num_regions: regionCount,
         use_random_image: true,
         ...imageParams,
       });
-
-      console.log('✅ Puzzle created:', data);
 
       setGameData(data);
       navigate('/play');
