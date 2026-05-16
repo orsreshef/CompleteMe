@@ -238,29 +238,3 @@ class UnsplashAPI:
             return False
 
 
-if __name__ == "__main__":
-    # Testing
-    print("🧪 Testing Unsplash API Module...")
-
-    api = UnsplashAPI()
-
-    # Test connection
-    is_working = api.test_api_connection()
-    print(
-        f"API Connection: {'✅ Working' if is_working else '❌ Not working (using fallback)'}")
-
-    # Get single image
-    print("\nFetching single random image...")
-    image = api.get_random_image(query='nature')
-
-    if image is not None:
-        print(f"✅ Image fetched: shape={image.shape}")
-    else:
-        print("❌ Failed to fetch image")
-
-    # Get multiple images
-    print("\nFetching multiple random images...")
-    images = api.get_multiple_random_images(count=3, query='animals')
-    print(f"✅ Fetched {len(images)} images")
-
-    print("\n✅ Unsplash API Module - All tests passed!")

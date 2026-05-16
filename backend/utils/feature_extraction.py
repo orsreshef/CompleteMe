@@ -212,21 +212,3 @@ class MultiModelFeatureExtractor:
         return is_match, avg_confidence
 
 
-if __name__ == "__main__":
-    print("🧪 Testing PyTorch Feature Extractor...")
-
-    # Create test images
-    test_image1 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-    test_image2 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-
-    # Test single model
-    extractor = FeatureExtractor('resnet50')
-    is_match, confidence = extractor.validate(test_image1, test_image2)
-    print(f"Single Model - Match: {is_match}, Confidence: {confidence:.3f}")
-
-    # Test multi-model
-    multi_extractor = MultiModelFeatureExtractor(['resnet50', 'vgg16'])
-    is_match, confidence = multi_extractor.validate(test_image1, test_image2)
-    print(f"Multi Model - Match: {is_match}, Confidence: {confidence:.3f}")
-
-    print("✅ PyTorch Feature Extractor - All tests passed!")

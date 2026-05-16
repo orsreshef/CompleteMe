@@ -316,34 +316,3 @@ class CVValidator:
 
         return context
 
-
-if __name__ == "__main__":
-    print("🧪 Testing CV Validator...")
-
-    # Create test data
-    puzzle_image = np.random.randint(0, 255, (400, 600, 3), dtype=np.uint8)
-    selected_piece = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-
-    missing_position = {
-        'x': 200,
-        'y': 150,
-        'width': 100,
-        'height': 100
-    }
-
-    validator = CVValidator()
-
-    # Test fast validation
-    print("\n--- Fast Validation ---")
-    is_match, confidence = validator.validate(
-        puzzle_image, selected_piece, missing_position)
-    print(f"Result: {is_match}, Confidence: {confidence:.3f}")
-
-    # Test comprehensive validation
-    print("\n--- Comprehensive Validation ---")
-    is_match, confidence, details = validator.validate_comprehensive(
-        puzzle_image, selected_piece, missing_position
-    )
-    print(f"Result: {is_match}, Confidence: {confidence:.3f}")
-
-    print("\n✅ CV Validator - All tests passed!")

@@ -377,32 +377,3 @@ class PuzzleGenerator:
         return piece
 
 
-if __name__ == "__main__":
-    # Testing
-    print("🧪 Testing Puzzle Generator Module...")
-
-    generator = PuzzleGenerator()
-
-    # Create test image
-    test_image = np.random.randint(0, 255, (600, 800, 3), dtype=np.uint8)
-
-    # Draw some shapes for visual testing
-    cv2.rectangle(test_image, (100, 100), (300, 300), (255, 0, 0), -1)
-    cv2.circle(test_image, (500, 200), 80, (0, 255, 0), -1)
-    cv2.rectangle(test_image, (400, 400), (700, 550), (0, 0, 255), -1)
-
-    # Test puzzle generation at different levels
-    for level in [1, 2, 3]:
-        print(f"\n--- Testing difficulty level {level} ---")
-        puzzle_data = generator.create_puzzle(
-            test_image, difficulty_level=level)
-
-        print(f"✅ Puzzle created:")
-        print(
-            f"   Grid: {puzzle_data['grid_rows']}x{puzzle_data['grid_cols']}")
-        print(f"   Options: {len(puzzle_data['options'])} pieces")
-        print(f"   Correct index: {puzzle_data['correct_index']}")
-        print(
-            f"   Missing position: ({puzzle_data['missing_position']['x']}, {puzzle_data['missing_position']['y']})")
-
-    print("\n✅ Puzzle Generator Module - All tests passed!")

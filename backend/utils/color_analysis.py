@@ -305,28 +305,3 @@ class ColorAnalyzer:
         return comparison
 
 
-if __name__ == "__main__":
-    # Test
-    print("🧪 Testing Color Analysis Module...")
-
-    # Create dummy images
-    test_image1 = np.random.randint(50, 150, (100, 100, 3), dtype=np.uint8)
-    test_image2 = test_image1.copy()
-    test_image2 = cv2.GaussianBlur(test_image2, (5, 5), 0)  # Add slight blur
-
-    analyzer = ColorAnalyzer()
-
-    # Test dominant color extraction
-    colors = analyzer.extract_dominant_colors(test_image1)
-    print(f"✅ Dominant colors extracted: {len(colors)} colors")
-
-    # Test histogram
-    hist = analyzer.calculate_color_histogram(test_image1)
-    print(f"✅ Histogram calculated: shape={hist.shape}")
-
-    # Test comparison
-    is_match, score, details = analyzer.validate_color_match(
-        test_image1, test_image2)
-    print(f"✅ Color match validation: match={is_match}, score={score:.3f}")
-
-    print("✅ Color Analysis Module - All tests passed!")
