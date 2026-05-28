@@ -9,7 +9,6 @@ from utils.feature_extraction import FeatureExtractor, MultiModelFeatureExtracto
 from utils.color_analysis import ColorAnalyzer
 from utils.texture_analysis import TextureAnalyzer
 from utils.edge_detection import EdgeAnalyzer
-# from utils.semantic_analysis import SemanticAnalyzer
 from utils.boundary_matcher import BoundaryMatcher
 from models.image_processor import ImageProcessor
 

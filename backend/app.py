@@ -213,6 +213,56 @@ def get_dominant_color_name(bgr_color):
         return "mixed colors"
 
 
+def _get_piece_color_description(bgr_image):
+    """Returns (color_name, saturation_desc, brightness_desc) for a BGR image."""
+    hsv = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
+    avg_h = float(hsv[:, :, 0].mean())
+    avg_s = float(hsv[:, :, 1].mean())
+    avg_v = float(hsv[:, :, 2].mean())
+
+    if avg_s < 40:
+        color = "white" if avg_v > 180 else ("dark gray" if avg_v < 60 else "gray")
+    elif avg_h < 10 or avg_h >= 160:
+        color = "red"
+    elif avg_h < 22:
+        color = "brown" if avg_s < 160 and avg_v < 170 else "orange"
+    elif avg_h < 33:
+        color = "yellow"
+    elif avg_h < 85:
+        color = "green"
+    elif avg_h < 130:
+        color = "blue"
+    elif avg_h < 160:
+        color = "purple"
+    else:
+        color = "red"
+
+    sat = "muted" if avg_s < 40 else ("soft" if avg_s < 120 else "vivid"  )
+    brightness = "dark" if avg_v < 80 else ("bright" if avg_v > 180 else "")
+
+    return color, sat, brightness
+
+
+def _get_piece_texture_description(bgr_image):
+    """Returns a texture description string based on pixel variance."""
+    gray = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+    std = float(np.std(gray))
+    if std < 15:
+        return "smooth and uniform"
+    elif std < 40:
+        return "lightly textured"
+    else:
+        return "rough and detailed"
+
+
+def _build_visual_hint(piece_image):
+    """Generates a natural-language hint describing a piece's visual appearance."""
+    color, sat, brightness = _get_piece_color_description(piece_image)
+    texture = _get_piece_texture_description(piece_image)
+    color_phrase = f"{brightness}, {sat} {color}" if brightness else f"{sat} {color}"
+    return f"Look for a piece with {color_phrase} tones and a {texture} appearance."
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """
@@ -571,20 +621,10 @@ def _generate_hint(confidence, details):
 @app.route('/api/puzzle/hint', methods=['POST'])
 def get_hint():
     """
-    Get a hint for the puzzle - UPDATED VERSION
-    Analyzes the boundaries around the black square instead of the missing piece
-
-    Request body (JSON):
-    {
-        "game_id": "unique_id"
-    }
-
-    Returns:
-    {
-        "hint": "Hint message",
-        "hint_type": "boundary/color/position",
-        "boundary_info": {...}
-    }
+    Get a hint for the puzzle.
+    Uses ResNet50 to find the best-matching candidate piece for the remaining
+    zone, then describes its visual appearance without revealing the piece number.
+    Falls back to boundary-color analysis if DL is unavailable.
     """
     try:
         data = request.get_json()
@@ -594,70 +634,64 @@ def get_hint():
             return jsonify({'error': 'Invalid game_id'}), 404
 
         game_data = active_games[game_id]
-
-        # Get puzzle image and the specific zone the player needs help with
         puzzle_image = game_data['puzzle_image']
         zone_index = int(data.get('zone_index', 0))
         missing_positions = game_data['missing_positions']
         if zone_index >= len(missing_positions):
             zone_index = 0
         missing_position = missing_positions[zone_index]
-        attempts = game_data['attempts']
+        options = game_data['options']
 
-        # Extract boundary colors
-        boundaries = extract_boundary_colors(
-            puzzle_image, missing_position, boundary_width=10)
+        # DL-powered hint: rank pieces by semantic similarity, describe the best match
+        if validator.has_deep_learning and validator.feature_extractor and options:
+            try:
+                margin = max(50, min(150, missing_position['height'], missing_position['width']))
+                context_region = validator._extract_context_region(
+                    puzzle_image, missing_position, margin=margin
+                )
+                ctx_features = validator.feature_extractor.extract_features(context_region)
+
+                best_score = -1.0
+                best_piece = None
+                for option_img in options:
+                    piece_features = validator.feature_extractor.extract_features(option_img)
+                    score = validator.feature_extractor.compare_features(
+                        ctx_features, piece_features, method='cosine'
+                    )
+                    if score > best_score:
+                        best_score = score
+                        best_piece = option_img
+
+                if best_piece is not None:
+                    hint = _build_visual_hint(best_piece)
+                    return jsonify({'hint': hint, 'hint_type': 'dl_visual'}), 200
+
+            except Exception as e:
+                print(f"⚠️ DL hint failed, falling back to boundary analysis: {e}")
+
+        # Fallback: boundary color analysis
+        boundaries = extract_boundary_colors(puzzle_image, missing_position, boundary_width=10)
 
         if not boundaries:
-            # Fallback to generic hints if no boundaries available
             hint = "Think about what would fit naturally in this spot."
-            hint_type = "generic"
-            boundary_info = {}
         else:
-            # Calculate average color across all boundaries
             all_boundary_colors = np.array(list(boundaries.values()))
             avg_boundary_color = all_boundary_colors.mean(axis=0)
-
-            # Get dominant color name
             dominant_color = get_dominant_color_name(avg_boundary_color)
-
-            # Find which boundary has the most distinct color
-            boundary_variances = {}
-            for direction, color in boundaries.items():
-                variance = np.std(color)
-                boundary_variances[direction] = variance
-
-            most_distinct_boundary = max(
-                boundary_variances, key=boundary_variances.get)
-            distinct_color = get_dominant_color_name(
-                boundaries[most_distinct_boundary])
-
-            # Generate hint based on attempts
+            boundary_variances = {d: np.std(c) for d, c in boundaries.items()}
+            most_distinct = max(boundary_variances, key=boundary_variances.get)
+            distinct_color = get_dominant_color_name(boundaries[most_distinct])
+            attempts = game_data['attempts']
             hints = [
                 f"Look for a piece that matches the surrounding colors - especially {dominant_color} tones.",
-                f"Pay attention to the {most_distinct_boundary} edge - it has {distinct_color} colors.",
+                f"Pay attention to the {most_distinct} edge - it has {distinct_color} colors.",
                 "Try to match the colors and patterns around the missing area.",
                 f"The piece should blend with the {dominant_color} colors around the black square.",
                 "Look at how the surrounding image connects - what would complete this naturally?"
             ]
-
-            # Rotate through hints based on attempts
             hint = hints[attempts % len(hints)]
-            hint_type = "boundary"
 
-            # Prepare boundary info for response
-            boundary_info = {
-                'dominant_color': dominant_color,
-                'most_distinct_boundary': most_distinct_boundary,
-                'distinct_color': distinct_color
-            }
-
-        return jsonify({
-            'hint': hint,
-            'hint_type': hint_type,
-            'boundary_info': boundary_info,
-            'attempts': attempts
-        }), 200
+        return jsonify({'hint': hint, 'hint_type': 'boundary'}), 200
 
     except Exception as e:
         print(f"❌ Error generating hint: {e}")

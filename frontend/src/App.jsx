@@ -26,6 +26,8 @@ function App() {
   const [config, setConfig] = useState(null);
   const [lastScore, setLastScore] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [lastImageParams, setLastImageParams] = useState({});
+  const [completionCountdown, setCompletionCountdown] = useState(null);
 
   useEffect(() => {
     loadConfig();
@@ -49,6 +51,17 @@ function App() {
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (completionCountdown === null) return;
+    if (completionCountdown === 0) {
+      startGame(lastImageParams);
+      setCompletionCountdown(null);
+      return;
+    }
+    const timer = setTimeout(() => setCompletionCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [completionCountdown]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadConfig = async () => {
     try {
       const configData = await api.getConfig();
@@ -68,6 +81,7 @@ function App() {
 
   // Called from ImageSelector with image params: { query } or {}
   const startGame = async (imageParams = {}) => {
+    setLastImageParams(imageParams);
     navigate('/loading');
 
     try {
@@ -123,6 +137,7 @@ function App() {
   const handleGameComplete = async (scoreEarned = 0) => {
     setLastScore(scoreEarned);
     setShowConfetti(true);
+    setCompletionCountdown(5);
     navigate('/finished');
 
     // Refresh user profile so the score updates immediately in the UI
@@ -135,10 +150,6 @@ function App() {
       }
     }
 
-    setTimeout(() => {
-      setGameData(null);
-      navigate('/game');
-    }, 5000);
   };
 
   // Wait for session restore to complete before rendering any screen
@@ -241,9 +252,20 @@ function App() {
                 {user && lastScore > 0 && (
                   <div className="score-earned-badge">+{lastScore} pts</div>
                 )}
-                <button className="btn-primary" onClick={restartGame}>
-                  Play Again
-                </button>
+                <div className="completion-actions">
+                  <button
+                    className="btn-primary"
+                    onClick={() => { setCompletionCountdown(null); startGame(lastImageParams); }}
+                  >
+                    Play Again{completionCountdown !== null ? ` (${completionCountdown})` : ''}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { setCompletionCountdown(null); restartGame(); }}
+                  >
+                    Change Settings
+                  </button>
+                </div>
               </div>
             </div>
           }
