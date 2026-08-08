@@ -1,6 +1,4 @@
-"""
-GameHistory model — SQLAlchemy ORM definition for the game_history table.
-"""
+"""GameHistory model — SQLAlchemy ORM definition for the game_history table."""
 
 from datetime import datetime, timezone
 from extensions import db
@@ -20,6 +18,7 @@ class GameHistory(db.Model):
     played_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
+        """Return a dictionary representation of the game history entry."""
         return {
             'game_id': self.game_id,
             'user_id': self.user_id,

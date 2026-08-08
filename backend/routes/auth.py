@@ -1,6 +1,4 @@
-"""
-Authentication routes — register, login, logout, token refresh, current user.
-"""
+"""Authentication routes — register, login, logout, token refresh, current user."""
 
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
@@ -20,18 +18,15 @@ from models.game_history import GameHistory
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
-# ── Register ──────────────────────────────────────────────────────────────────
-
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Create a new user account."""
+    """Create a new user account and return JWT cookies."""
     data = request.get_json(silent=True) or {}
 
     username = (data.get('username') or '').strip()
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
 
-    # Basic validation
     if not username or not email or not password:
         return jsonify({'error': 'Username, email and password are required.'}), 400
 
@@ -44,14 +39,12 @@ def register():
     if '@' not in email or '.' not in email.split('@')[-1]:
         return jsonify({'error': 'Invalid email address.'}), 400
 
-    # Uniqueness check
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'An account with this email already exists.'}), 409
 
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'This username is already taken.'}), 409
 
-    # Create user
     avatar_id = int(data.get('avatar_id', 1))
     if avatar_id not in range(1, 6):
         avatar_id = 1
@@ -60,7 +53,6 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    # Issue tokens
     access_token = create_access_token(identity=str(user.user_id))
     refresh_token = create_refresh_token(identity=str(user.user_id))
 
@@ -69,8 +61,6 @@ def register():
     set_refresh_cookies(response, refresh_token)
     return response, 201
 
-
-# ── Login ─────────────────────────────────────────────────────────────────────
 
 @auth_bp.route('/login', methods=['POST'])
 @limiter.limit('5 per 15 minutes')
@@ -89,7 +79,6 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({'error': 'Invalid email or password.'}), 401
 
-    # Update last login timestamp
     user.last_login = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -102,8 +91,6 @@ def login():
     return response, 200
 
 
-# ── Logout ────────────────────────────────────────────────────────────────────
-
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     """Clear JWT cookies."""
@@ -111,8 +98,6 @@ def logout():
     unset_jwt_cookies(response)
     return response, 200
 
-
-# ── Refresh access token ──────────────────────────────────────────────────────
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
@@ -124,8 +109,6 @@ def refresh():
     set_access_cookies(response, access_token)
     return response, 200
 
-
-# ── Current user ──────────────────────────────────────────────────────────────
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
@@ -139,8 +122,6 @@ def me():
 
     return jsonify({'user': user.to_dict()}), 200
 
-
-# ── Update avatar ─────────────────────────────────────────────────────────────
 
 @auth_bp.route('/update-avatar', methods=['PATCH'])
 @jwt_required()
@@ -161,12 +142,10 @@ def update_avatar():
     return jsonify({'user': user.to_dict()}), 200
 
 
-# ── Change password ────────────────────────────────────────────────────────────
-
 @auth_bp.route('/change-password', methods=['PATCH'])
 @jwt_required()
 def change_password():
-    """Change the current user's password."""
+    """Change the current user's password after verifying the existing one."""
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user:
@@ -186,8 +165,6 @@ def change_password():
     db.session.commit()
     return jsonify({'message': 'Password updated successfully.'}), 200
 
-
-# ── Delete account ─────────────────────────────────────────────────────────────
 
 @auth_bp.route('/delete-account', methods=['DELETE'])
 @jwt_required()
@@ -212,8 +189,6 @@ def delete_account():
     unset_jwt_cookies(response)
     return response, 200
 
-
-# ── Game history ───────────────────────────────────────────────────────────────
 
 @auth_bp.route('/history', methods=['GET'])
 @jwt_required()

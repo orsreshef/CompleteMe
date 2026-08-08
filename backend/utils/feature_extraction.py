@@ -1,7 +1,4 @@
-"""
-Feature Extraction Module - PyTorch Version
-Deep feature extraction from images using PyTorch
-"""
+"""Deep feature extraction from images using pretrained PyTorch models."""
 
 import torch
 import torchvision.models as models
@@ -13,24 +10,15 @@ from scipy.spatial.distance import cosine, euclidean
 
 
 class FeatureExtractor:
-    """
-    Class for extracting deep features from images using PyTorch
-    """
+    """Extracts deep feature vectors from images using a pretrained torchvision backbone."""
 
     def __init__(self, model_name='resnet50'):
-        """
-        Initialize the model
-
-        Args:
-            model_name: 'resnet50', 'vgg16', 'resnet18', 'efficientnet_b0'
-        """
+        """Load the specified pretrained model and set up the ImageNet normalization transform."""
         self.model_name = model_name
-        self.device = torch.device(
-            'cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self._load_model()
-        self.model.eval()  # evaluation mode (not training)
+        self.model.eval()
 
-        # Define image transformations
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -40,31 +28,24 @@ class FeatureExtractor:
             )
         ])
 
-        print(
-            f"✅ PyTorch Feature Extractor loaded: {model_name} on {self.device}")
+        print(f"✅ PyTorch Feature Extractor loaded: {model_name} on {self.device}")
 
     def _load_model(self):
-        """Loads the pretrained model"""
+        """Load the pretrained backbone and strip the classification head."""
         if self.model_name == 'resnet50':
-            model = models.resnet50(
-                weights=models.ResNet50_Weights.IMAGENET1K_V1)
-            # Remove the final FC layer
+            model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
             model = torch.nn.Sequential(*list(model.children())[:-1])
 
         elif self.model_name == 'resnet18':
-            model = models.resnet18(
-                weights=models.ResNet18_Weights.IMAGENET1K_V1)
+            model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
             model = torch.nn.Sequential(*list(model.children())[:-1])
 
         elif self.model_name == 'vgg16':
             model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-            # Keep only features, without classifier
-            model = model.features
+            model = model.features  # keep convolutional layers only
 
         elif self.model_name == 'efficientnet_b0':
-            model = models.efficientnet_b0(
-                weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
-            # Remove the classifier
+            model = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
             model.classifier = torch.nn.Identity()
 
         else:
@@ -73,57 +54,31 @@ class FeatureExtractor:
         return model.to(self.device)
 
     def extract_features(self, image):
-        """
-        Extracts features from an image
-
-        Args:
-            image: image (numpy array BGR or PIL Image)
-
-        Returns:
-            numpy array: feature vector
-        """
-        # Convert to PIL if needed
+        """Run the image through the backbone and return a flattened 1-D feature vector."""
         if isinstance(image, np.ndarray):
-            # OpenCV uses BGR, need to convert to RGB
             if len(image.shape) == 3 and image.shape[2] == 3:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(image.astype('uint8'))
 
-        # Prepare the image
         img_tensor = self.transform(image).unsqueeze(0).to(self.device)
 
-        # Extract features
         with torch.no_grad():
             features = self.model(img_tensor)
 
-        # Convert to numpy
         features = features.squeeze().cpu().numpy()
 
-        # Flatten if needed
         if features.ndim > 1:
             features = features.flatten()
 
         return features
 
     def compare_features(self, features1, features2, method='cosine'):
-        """
-        Compares two feature vectors
-
-        Args:
-            features1: first vector
-            features2: second vector
-            method: 'cosine' or 'euclidean'
-
-        Returns:
-            float: similarity score (0-1)
-        """
+        """Compare two feature vectors and return a similarity score in [0, 1]."""
         if method == 'cosine':
-            # Cosine similarity: 1 = identical, 0 = completely different
+            # cosine distance: 0 = identical, 1 = orthogonal; invert to get similarity
             similarity = 1 - cosine(features1.flatten(), features2.flatten())
         elif method == 'euclidean':
-            # Euclidean distance: smaller = more similar
             distance = euclidean(features1.flatten(), features2.flatten())
-            # Normalize to 0-1 range
             similarity = 1 / (1 + distance / 100)
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -131,25 +86,12 @@ class FeatureExtractor:
         return max(0, min(1, similarity))
 
     def validate(self, image1, image2, threshold=0.75):
-        """
-        Quick check of similarity between two images
-
-        Args:
-            image1: first image
-            image2: second image
-            threshold: similarity threshold
-
-        Returns:
-            tuple: (is_match, confidence)
-        """
+        """Quick similarity check between two images. Returns (is_match: bool, confidence: float)."""
         try:
             features1 = self.extract_features(image1)
             features2 = self.extract_features(image2)
-
             confidence = self.compare_features(features1, features2)
-            is_match = confidence >= threshold
-
-            return is_match, confidence
+            return confidence >= threshold, confidence
 
         except Exception as e:
             print(f"❌ Error in feature validation: {e}")
@@ -157,17 +99,10 @@ class FeatureExtractor:
 
 
 class MultiModelFeatureExtractor:
-    """
-    Class that uses multiple models and combines their results
-    """
+    """Combines feature vectors from multiple backbone models and averages their similarity scores."""
 
     def __init__(self, models=['resnet50', 'vgg16']):
-        """
-        Initialize multiple models
-
-        Args:
-            models: list of model names
-        """
+        """Initialize each backbone; silently skips any model that fails to load."""
         self.extractors = {}
         for model_name in models:
             try:
@@ -178,21 +113,10 @@ class MultiModelFeatureExtractor:
         if not self.extractors:
             raise ValueError("No models loaded successfully")
 
-        print(
-            f"✅ Multi-Model Extractor initialized with {len(self.extractors)} models")
+        print(f"✅ Multi-Model Extractor initialized with {len(self.extractors)} models")
 
     def validate(self, image1, image2, threshold=0.75):
-        """
-        Combined validation using multiple models
-
-        Args:
-            image1: first image
-            image2: second image
-            threshold: similarity threshold
-
-        Returns:
-            tuple: (is_match, confidence)
-        """
+        """Run all loaded models and return (is_match, averaged_confidence)."""
         confidences = []
 
         for model_name, extractor in self.extractors.items():
@@ -205,28 +129,5 @@ class MultiModelFeatureExtractor:
         if not confidences:
             return False, 0.0
 
-        # Average across all models
         avg_confidence = np.mean(confidences)
-        is_match = avg_confidence >= threshold
-
-        return is_match, avg_confidence
-
-
-if __name__ == "__main__":
-    print("🧪 Testing PyTorch Feature Extractor...")
-
-    # Create test images
-    test_image1 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-    test_image2 = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
-
-    # Test single model
-    extractor = FeatureExtractor('resnet50')
-    is_match, confidence = extractor.validate(test_image1, test_image2)
-    print(f"Single Model - Match: {is_match}, Confidence: {confidence:.3f}")
-
-    # Test multi-model
-    multi_extractor = MultiModelFeatureExtractor(['resnet50', 'vgg16'])
-    is_match, confidence = multi_extractor.validate(test_image1, test_image2)
-    print(f"Multi Model - Match: {is_match}, Confidence: {confidence:.3f}")
-
-    print("✅ PyTorch Feature Extractor - All tests passed!")
+        return avg_confidence >= threshold, avg_confidence

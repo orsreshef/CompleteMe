@@ -99,14 +99,9 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
       }));
 
       const result = await api.validateAnswer(gameData.game_id, placementsArray);
-      console.log('Validation result:', result);
 
       setValidationResult(result);
       setShowModal(true);
-
-      if (result.is_correct) {
-        setTimeout(() => onComplete(result.score_earned ?? 0), 1500);
-      }
     } catch (error) {
       console.error('Validation error:', error);
       toast.error('Validation failed. Please try again.');
@@ -117,7 +112,11 @@ const GameBoard = ({ gameData, difficulty, onRestart, onComplete }) => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    if (!validationResult?.is_correct && validationResult?.region_results) {
+    if (validationResult?.is_correct) {
+      onComplete(validationResult.score_earned ?? 0);
+      return;
+    }
+    if (validationResult?.region_results) {
       // Remove placements for zones that were wrong
       const wrongZones = validationResult.region_results
         .filter((r) => !r.is_correct)

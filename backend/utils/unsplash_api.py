@@ -1,7 +1,4 @@
-"""
-Unsplash API Integration Module
-Handles fetching random images from Unsplash
-"""
+"""Unsplash API client for fetching random images used as puzzle sources and decoys."""
 
 import requests
 import random
@@ -24,17 +21,10 @@ def _get_thread_session():
 
 
 class UnsplashAPI:
-    """
-    Class for interacting with Unsplash API
-    """
+    """Wraps the Unsplash REST API and falls back to procedural noise images when unavailable."""
 
     def __init__(self, access_key=None):
-        """
-        Initialize Unsplash API client
-
-        Args:
-            access_key: Unsplash access key (optional, uses config if not provided)
-        """
+        """Initialize with an Unsplash access key; sets use_fallback=True if no key is found."""
         self.access_key = access_key or Config.UNSPLASH_ACCESS_KEY
 
         if not self.access_key:
@@ -46,7 +36,6 @@ class UnsplashAPI:
 
         self.base_url = Config.UNSPLASH_API_URL
 
-    # Safe, colorful, kid-friendly topics used when no query is specified
     _DEFAULT_QUERIES = [
         'flowers', 'butterflies', 'birds', 'fruits', 'rainbow',
         'balloons', 'playground', 'candy', 'cats', 'dogs',
@@ -54,33 +43,18 @@ class UnsplashAPI:
         'fireworks', 'autumn leaves', 'tropical beach', 'peacock', 'koi fish'
     ]
 
-    # Bright colors to randomly bias Unsplash results toward vibrant images
     _BRIGHT_COLORS = ['yellow', 'orange', 'red', 'purple', 'magenta', 'green', 'teal', 'blue']
 
     def get_random_image(self, query=None, orientation='landscape', size='regular'):
-        """
-        Get a random image from Unsplash
-
-        Args:
-            query: search query (e.g., 'nature', 'animals', 'city')
-            orientation: 'landscape', 'portrait', or 'squarish'
-            size: 'raw', 'full', 'regular', 'small', 'thumb'
-
-        Returns:
-            tuple (numpy array BGR, image_url string) — url is '' on fallback
-        """
+        """Fetch a single random image from Unsplash and return (bgr_array, thumb_url).
+        Returns a procedural fallback image and empty string on any error."""
         if self.use_fallback:
             return self._get_random_image_fallback(), ''
 
         try:
-            # Build API request
             url = f"{self.base_url}{Config.UNSPLASH_RANDOM_ENDPOINT}"
+            headers = {'Authorization': f'Client-ID {self.access_key}'}
 
-            headers = {
-                'Authorization': f'Client-ID {self.access_key}'
-            }
-
-            # If no query given, pick a random safe topic for variety
             active_query = query if query else random.choice(self._DEFAULT_QUERIES)
 
             params = {
@@ -91,31 +65,21 @@ class UnsplashAPI:
                 'color': random.choice(self._BRIGHT_COLORS),
             }
 
-            # Make request (thread-local session — safe for concurrent calls)
-            response = _get_thread_session().get(
-                url, headers=headers, params=params, timeout=10)
+            response = _get_thread_session().get(url, headers=headers, params=params, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
+                image_data = data[0] if isinstance(data, list) and len(data) > 0 else data
 
-                if isinstance(data, list) and len(data) > 0:
-                    image_data = data[0]
-                else:
-                    image_data = data
-
-                # Get image URL (use 'small' size for thumbnails in history)
                 image_url = image_data['urls'][size]
                 thumb_url = image_data['urls'].get('small', image_url)
 
-                # Download image (reuse same thread-local session)
                 img_response = _get_thread_session().get(image_url, timeout=10)
 
                 if img_response.status_code == 200:
-                    # Convert to numpy array
                     image = Image.open(io.BytesIO(img_response.content))
                     image_np = np.array(image)
 
-                    # Convert RGB to BGR (OpenCV format)
                     if len(image_np.shape) == 3 and image_np.shape[2] == 3:
                         image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
                     else:
@@ -123,13 +87,12 @@ class UnsplashAPI:
 
                     return image_bgr, thumb_url
                 else:
-                    print(
-                        f"❌ Failed to download image: {img_response.status_code}")
+                    print(f"❌ Failed to download image: {img_response.status_code}")
                     return self._get_random_image_fallback(), ''
 
             elif response.status_code == 403:
-                # Rate limit hit for this request — use fallback but don't
-                # lock the session permanently so future requests can retry
+                # Rate limit hit for this request — use fallback but don't lock the session
+                # permanently so future requests can retry
                 print("⚠️ Unsplash API rate limit reached for this request. Using fallback.")
                 return self._get_random_image_fallback(), ''
 
@@ -142,20 +105,10 @@ class UnsplashAPI:
             return self._get_random_image_fallback(), ''
 
     def get_multiple_random_images(self, count=5, query=None):
-        """
-        Get multiple random images
-
-        Args:
-            count: number of images to fetch
-            query: search query
-
-        Returns:
-            list of numpy arrays
-        """
+        """Fetch count random images sequentially with slight query variation for diversity."""
         images = []
 
         for i in range(count):
-            # Vary the query slightly for diversity
             if query:
                 queries = [query, f'{query} closeup', f'{query} detail',
                            f'{query} texture', f'{query} pattern']
@@ -169,7 +122,6 @@ class UnsplashAPI:
             if image is not None:
                 images.append(image)
 
-            # Add small delay to avoid rate limiting
             if not self.use_fallback and i < count - 1:
                 import time
                 time.sleep(0.5)
@@ -177,50 +129,29 @@ class UnsplashAPI:
         return images
 
     def _get_random_image_fallback(self):
-        """
-        Generate a random colored image as fallback
-        Used when Unsplash API is not available
-
-        Returns:
-            numpy array (BGR format)
-        """
-        # Generate random colored noise image
+        """Generate a random-coloured noise image as a stand-in when Unsplash is unavailable."""
         width = random.randint(400, 800)
         height = random.randint(400, 800)
 
-        # Create base color
         base_color = np.random.randint(0, 255, 3)
-
-        # Create gradient or texture
         image = np.zeros((height, width, 3), dtype=np.uint8)
 
         for i in range(3):
-            # Add some variation
-            channel = np.random.randint(
+            image[:, :, i] = np.random.randint(
                 max(0, base_color[i] - 50),
                 min(255, base_color[i] + 50),
                 (height, width),
                 dtype=np.uint8
             )
-            image[:, :, i] = channel
 
-        # Add some texture
         noise = np.random.normal(0, 15, (height, width, 3)).astype(np.int16)
-        image = np.clip(image.astype(np.int16) +
-                        noise, 0, 255).astype(np.uint8)
-
-        # Apply slight blur for smoothness
+        image = np.clip(image.astype(np.int16) + noise, 0, 255).astype(np.uint8)
         image = cv2.GaussianBlur(image, (5, 5), 0)
 
         return image
 
     def test_api_connection(self):
-        """
-        Test if Unsplash API is working
-
-        Returns:
-            bool: True if API is working, False otherwise
-        """
+        """Return True if the Unsplash API responds with HTTP 200, False otherwise."""
         if not self.access_key:
             return False
 
@@ -229,38 +160,8 @@ class UnsplashAPI:
             headers = {'Authorization': f'Client-ID {self.access_key}'}
             params = {'count': 1}
 
-            response = _get_thread_session().get(
-                url, headers=headers, params=params, timeout=5)
-
+            response = _get_thread_session().get(url, headers=headers, params=params, timeout=5)
             return response.status_code == 200
 
         except:
             return False
-
-
-if __name__ == "__main__":
-    # Testing
-    print("🧪 Testing Unsplash API Module...")
-
-    api = UnsplashAPI()
-
-    # Test connection
-    is_working = api.test_api_connection()
-    print(
-        f"API Connection: {'✅ Working' if is_working else '❌ Not working (using fallback)'}")
-
-    # Get single image
-    print("\nFetching single random image...")
-    image = api.get_random_image(query='nature')
-
-    if image is not None:
-        print(f"✅ Image fetched: shape={image.shape}")
-    else:
-        print("❌ Failed to fetch image")
-
-    # Get multiple images
-    print("\nFetching multiple random images...")
-    images = api.get_multiple_random_images(count=3, query='animals')
-    print(f"✅ Fetched {len(images)} images")
-
-    print("\n✅ Unsplash API Module - All tests passed!")

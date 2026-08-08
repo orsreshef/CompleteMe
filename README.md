@@ -114,7 +114,6 @@ A full-stack application combining:
 | **scikit-image**        | Image processing / LBP               | 0.25.2   |
 | **scikit-learn**        | ML utilities / distance metrics      | 1.7.2    |
 | **SciPy**               | Signal processing / distance metrics | 1.16.3   |
-| **PyWavelets**          | Wavelet-based texture analysis       | 1.9.0    |
 | **Requests**            | HTTP client (Unsplash API)           | 2.32.5   |
 | **psycopg2-binary**     | PostgreSQL adapter                   | 2.9+     |
 | **python-dotenv**       | Environment variable management      | 1.2.1    |
@@ -206,7 +205,7 @@ Runs on every guess to produce the confidence score shown in the UI:
 | **Boundary**       | 35%    | HSV histogram boundary matching         |
 | **Feature (DL)**   | 35%    | ResNet50 cosine similarity (PyTorch)    |
 | **Color**          | 15%    | HSV histogram + K-Means dominant colors |
-| **Texture**        | 10%    | LBP (Local Binary Patterns) + GLCM      |
+| **Texture**        | 10%    | LBP (Local Binary Patterns)             |
 | **Edge**           | 5%     | Canny / Sobel edge density              |
 
 **Step 3 — Tiebreaker (only when needed)**
