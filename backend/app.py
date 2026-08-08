@@ -1,7 +1,4 @@
-"""
-Main Flask Application - UPDATED VERSION
-API endpoints for the puzzle game with Boundary Matching
-"""
+"""Flask application — API endpoints for the AI puzzle game."""
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -22,20 +19,17 @@ from utils.unsplash_api import UnsplashAPI
 from routes.auth import auth_bp
 
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Load configuration
 env = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(get_config(env))
 
-# Initialize extensions
 db.init_app(app)
 jwt.init_app(app)
 bcrypt.init_app(app)
 limiter.init_app(app)
 
-# Enable CORS — credentials=True required for HTTP-only JWT cookies
+# credentials=True is required for HTTP-only JWT cookies
 CORS(app, resources={
     r"/api/*": {
         "origins": app.config['CORS_ORIGINS'],
@@ -45,96 +39,50 @@ CORS(app, resources={
     }
 })
 
-# Register authentication blueprint
 app.register_blueprint(auth_bp)
 
-# Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Create database tables if they don't exist yet
 with app.app_context():
-    # Import models so SQLAlchemy knows about them before create_all
     from models.user import User  # noqa: F401
     from models.game_history import GameHistory  # noqa: F401
     db.create_all()
     print("✅ Database tables ready")
 
-# Initialize components
 puzzle_generator = PuzzleGenerator()
 image_processor = ImageProcessor()
 unsplash_api = UnsplashAPI()
 
-# Initialize validator
 validator = CVValidator()
 print("🎯 Using Boundary Matching Validator")
 
-# Storage for active games (in production, use Redis or database)
+# In production, replace with Redis or a database
 active_games = {}
 
 
 def image_to_base64(image):
-    """
-    Convert numpy image to base64 string
-
-    Args:
-        image: numpy array (BGR)
-
-    Returns:
-        base64 encoded string
-    """
-    # Convert BGR to RGB
+    """Convert a BGR numpy image to a base64-encoded PNG data URL."""
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Convert to PIL Image
     pil_image = Image.fromarray(image_rgb)
-
-    # Save to bytes buffer
     buffer = io.BytesIO()
     pil_image.save(buffer, format='PNG')
     buffer.seek(0)
-
-    # Encode to base64
     img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-
     return f"data:image/png;base64,{img_base64}"
 
 
 def base64_to_image(base64_string):
-    """
-    Convert base64 string to numpy image
-
-    Args:
-        base64_string: base64 encoded image
-
-    Returns:
-        numpy array (BGR)
-    """
-    # Remove data URL prefix if present
+    """Decode a base64 image string (with or without data URL prefix) to a BGR numpy array."""
     if 'base64,' in base64_string:
         base64_string = base64_string.split('base64,')[1]
-
-    # Decode base64
     img_bytes = base64.b64decode(base64_string)
-
-    # Convert to numpy array
     nparr = np.frombuffer(img_bytes, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
     return image
 
 
 def extract_boundary_colors(puzzle_image, missing_position, boundary_width=10):
-    """
-    Extract colors from the boundaries around the black square
-
-    Args:
-        puzzle_image: The image with black square
-        missing_position: Dict with x, y, width, height
-        boundary_width: How many pixels to analyze around the square
-
-    Returns:
-        dict: Average colors for each boundary (top, bottom, left, right)
-    """
+    """Extract average BGR colors from the four pixel strips surrounding the hole."""
     x = missing_position['x']
     y = missing_position['y']
     w = missing_position['width']
@@ -142,42 +90,25 @@ def extract_boundary_colors(puzzle_image, missing_position, boundary_width=10):
 
     boundaries = {}
 
-    # Top boundary (above the black square)
     if y >= boundary_width:
-        top_region = puzzle_image[y - boundary_width:y, x:x + w]
-        boundaries['top'] = top_region.mean(axis=(0, 1))
+        boundaries['top'] = puzzle_image[y - boundary_width:y, x:x + w].mean(axis=(0, 1))
 
-    # Bottom boundary (below the black square)
     if y + h + boundary_width <= puzzle_image.shape[0]:
-        bottom_region = puzzle_image[y + h:y + h + boundary_width, x:x + w]
-        boundaries['bottom'] = bottom_region.mean(axis=(0, 1))
+        boundaries['bottom'] = puzzle_image[y + h:y + h + boundary_width, x:x + w].mean(axis=(0, 1))
 
-    # Left boundary (left of the black square)
     if x >= boundary_width:
-        left_region = puzzle_image[y:y + h, x - boundary_width:x]
-        boundaries['left'] = left_region.mean(axis=(0, 1))
+        boundaries['left'] = puzzle_image[y:y + h, x - boundary_width:x].mean(axis=(0, 1))
 
-    # Right boundary (right of the black square)
     if x + w + boundary_width <= puzzle_image.shape[1]:
-        right_region = puzzle_image[y:y + h, x + w:x + w + boundary_width]
-        boundaries['right'] = right_region.mean(axis=(0, 1))
+        boundaries['right'] = puzzle_image[y:y + h, x + w:x + w + boundary_width].mean(axis=(0, 1))
 
     return boundaries
 
 
 def get_dominant_color_name(bgr_color):
-    """
-    Convert BGR color values to a color name
-
-    Args:
-        bgr_color: [B, G, R] values
-
-    Returns:
-        str: Color name
-    """
+    """Map a BGR color vector to a human-readable color name string."""
     b, g, r = bgr_color
 
-    # Simple color classification
     if r > g and r > b:
         if r > 180:
             return "bright red"
@@ -237,7 +168,7 @@ def _get_piece_color_description(bgr_image):
     else:
         color = "red"
 
-    sat = "muted" if avg_s < 40 else ("soft" if avg_s < 120 else "vivid"  )
+    sat = "muted" if avg_s < 40 else ("soft" if avg_s < 120 else "vivid")
     brightness = "dark" if avg_v < 80 else ("bright" if avg_v > 180 else "")
 
     return color, sat, brightness
@@ -265,13 +196,11 @@ def _build_visual_hint(piece_image):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """
-    Health check endpoint
-    """
+    """Return API health status."""
     return jsonify({
         'status': 'healthy',
         'message': 'AI Puzzle Game API is running',
-        'version': '2.0.0',  # Updated version
+        'version': '2.0.0',
         'validator': 'boundary_matching',
         'unsplash_available': not unsplash_api.use_fallback
     }), 200
@@ -279,9 +208,7 @@ def health_check():
 
 @app.route('/api/config', methods=['GET'])
 def get_client_config():
-    """
-    Get configuration for the client
-    """
+    """Return puzzle configuration constants for the frontend."""
     return jsonify({
         'difficulty_levels': Config.DIFFICULTY_LEVELS,
         'max_image_size': Config.MAX_IMAGE_DIMENSION,
@@ -292,44 +219,23 @@ def get_client_config():
 
 @app.route('/api/puzzle/create', methods=['POST'])
 def create_puzzle():
-    """
-    Create a new puzzle game
-
-    Request body (JSON):
-    {
-        "image": "base64_encoded_image" (optional),
-        "difficulty": 1-5,
-        "use_random_image": true/false
-    }
-
-    Returns:
-    {
-        "game_id": "unique_id",
-        "puzzle_image": "base64_encoded",
-        "options": ["base64_encoded", ...],
-        "difficulty": {...},
-        "message": "Puzzle created successfully"
-    }
-    """
+    """Create a new puzzle game from an uploaded or random Unsplash image.
+    Returns game_id, puzzle_image (base64), piece options, and layout metadata."""
     try:
         data = request.get_json()
 
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
-        # Get difficulty level
         difficulty = data.get('difficulty', 1)
 
         if difficulty not in Config.DIFFICULTY_LEVELS:
             return jsonify({'error': f'Invalid difficulty level: {difficulty}'}), 400
 
-        # Get number of missing regions
         num_regions = int(data.get('num_regions', 1))
 
-        # Get or generate image
         use_random = data.get('use_random_image', True)
         fetched_url = ''
-
         prefetched_decoys = None
 
         if use_random or 'image' not in data:
@@ -351,17 +257,14 @@ def create_puzzle():
             if image is None:
                 return jsonify({'error': 'Invalid image data'}), 400
 
-        # Create puzzle
         print(f"Creating puzzle with difficulty {difficulty}, {num_regions} region(s)...")
         puzzle_data = puzzle_generator.create_puzzle(
             image, difficulty_level=difficulty, num_regions=num_regions,
             prefetched_decoys=prefetched_decoys)
 
-        # Generate unique game ID
         import uuid
         game_id = str(uuid.uuid4())
 
-        # Store game data (options stored for relative ranking at validation time)
         active_games[game_id] = {
             'puzzle_image': puzzle_data['puzzle_image'],
             'missing_positions': puzzle_data['missing_positions'],
@@ -374,15 +277,11 @@ def create_puzzle():
             'difficulty_name': puzzle_data.get('difficulty_name', '')
         }
 
-        # Convert images to base64 for response
         puzzle_image_b64 = image_to_base64(puzzle_data['puzzle_image'])
-        options_b64 = [image_to_base64(option)
-                       for option in puzzle_data['options']]
+        options_b64 = [image_to_base64(option) for option in puzzle_data['options']]
 
-        # Image dimensions (for frontend drop-zone overlay positioning)
         img_h, img_w = puzzle_data['puzzle_image'].shape[:2]
 
-        # Prepare response
         response = {
             'game_id': game_id,
             'puzzle_image': puzzle_image_b64,
@@ -413,26 +312,8 @@ def create_puzzle():
 
 @app.route('/api/puzzle/validate', methods=['POST'])
 def validate_answer():
-    """
-    Validate user's answer using Boundary Matching + Computer Vision
-
-    Request body (JSON):
-    {
-        "game_id": "unique_id",
-        "placements": [
-            {"zone_index": 0, "piece": "base64_encoded_image"},
-            {"zone_index": 1, "piece": "base64_encoded_image"}
-        ]
-    }
-
-    Returns:
-    {
-        "is_correct": true/false,
-        "confidence": 0.0-1.0,
-        "region_results": [...],
-        "message": "Correct!" or "Try again!"
-    }
-    """
+    """Validate piece placements using relative boundary ranking across all 6 candidates.
+    A placement is correct when the selected piece ranks #1; ties are broken by comprehensive CV scoring."""
     try:
         data = request.get_json()
 
@@ -475,11 +356,9 @@ def validate_answer():
             placed_piece = all_options[option_index]
             missing_position = missing_positions[zone_index]
 
-            # ── Relative ranking ──────────────────────────────────────────
-            # Score every candidate piece against this zone using boundary
-            # matching (fast, no GPU).  User is correct if they rank #1.
-            # When scores are within TIE_MARGIN (uniform-colour regions like
-            # white walls, clear sky), the comprehensive score breaks the tie.
+            # Score every candidate against this zone; the user wins if they rank #1.
+            # TIE_MARGIN handles uniform-colour regions (white walls, clear sky) where
+            # boundary scores cluster — comprehensive scoring then breaks the tie.
             TIE_MARGIN = 0.02
 
             option_boundary_scores = []
@@ -493,7 +372,6 @@ def validate_answer():
             best_boundary_score = max(option_boundary_scores)
             rank = sum(1 for s in option_boundary_scores if s > user_boundary_score) + 1
 
-            # Run comprehensive validation for the confidence display (and tie-breaking)
             _, confidence, details = validator.validate_comprehensive(
                 puzzle_image, placed_piece, missing_position
             )
@@ -501,7 +379,6 @@ def validate_answer():
             if rank == 1:
                 is_match = True
             elif best_boundary_score - user_boundary_score <= TIE_MARGIN:
-                # Tie zone — run comprehensive on each competing option and compare
                 competing_indices = [
                     i for i, s in enumerate(option_boundary_scores)
                     if s > user_boundary_score
@@ -537,7 +414,6 @@ def validate_answer():
 
         overall_confidence = total_confidence / len(placements)
 
-        # Save game result to history if a user is logged in
         if all_correct:
             try:
                 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
@@ -592,17 +468,7 @@ def validate_answer():
 
 
 def _generate_hint(confidence, details):
-    """
-    Generate helpful hint based on validation results
-
-    Args:
-        confidence: overall confidence score
-        details: detailed validation results
-
-    Returns:
-        hint string
-    """
-    # Check which aspect scored lowest
+    """Return a hint string based on boundary and color scores from the validation details."""
     boundary_score = details.get('boundary', {}).get('score', 0)
     color_score = details.get('color', {}).get('score', 0)
 
@@ -620,12 +486,7 @@ def _generate_hint(confidence, details):
 
 @app.route('/api/puzzle/hint', methods=['POST'])
 def get_hint():
-    """
-    Get a hint for the puzzle.
-    Uses ResNet50 to find the best-matching candidate piece for the remaining
-    zone, then describes its visual appearance without revealing the piece number.
-    Falls back to boundary-color analysis if DL is unavailable.
-    """
+    """Return a visual hint for the missing zone using ResNet50 similarity, with a color-based fallback."""
     try:
         data = request.get_json()
         game_id = data.get('game_id')
@@ -642,7 +503,6 @@ def get_hint():
         missing_position = missing_positions[zone_index]
         options = game_data['options']
 
-        # DL-powered hint: rank pieces by semantic similarity, describe the best match
         if validator.has_deep_learning and validator.feature_extractor and options:
             try:
                 margin = max(50, min(150, missing_position['height'], missing_position['width']))
@@ -669,7 +529,6 @@ def get_hint():
             except Exception as e:
                 print(f"⚠️ DL hint failed, falling back to boundary analysis: {e}")
 
-        # Fallback: boundary color analysis
         boundaries = extract_boundary_colors(puzzle_image, missing_position, boundary_width=10)
 
         if not boundaries:
@@ -701,16 +560,7 @@ def get_hint():
 
 @app.route('/api/stats', methods=['GET'])
 def get_statistics():
-    """
-    Get game statistics
-
-    Returns:
-    {
-        "active_games": 10,
-        "validator_type": "boundary_matching",
-        "api_status": "healthy"
-    }
-    """
+    """Return aggregate game statistics."""
     return jsonify({
         'active_games': len(active_games),
         'unsplash_available': not unsplash_api.use_fallback,
@@ -721,14 +571,7 @@ def get_statistics():
 
 @app.route('/api/puzzle/cleanup', methods=['POST'])
 def cleanup_game():
-    """
-    Clean up a finished game
-
-    Request body (JSON):
-    {
-        "game_id": "unique_id"
-    }
-    """
+    """Remove a finished game from active_games to free memory."""
     try:
         data = request.get_json()
         game_id = data.get('game_id')
@@ -746,13 +589,13 @@ def cleanup_game():
 
 @app.errorhandler(404)
 def not_found(error):
-    """Handle 404 errors"""
+    """Handle 404 errors."""
     return jsonify({'error': 'Endpoint not found'}), 404
 
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Handle 500 errors"""
+    """Handle 500 errors."""
     return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -762,8 +605,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print(f"Environment: {env}")
     print(f"Debug Mode: {app.config['DEBUG']}")
-    print(
-        f"Unsplash API: {'✅ Available' if not unsplash_api.use_fallback else '⚠️ Using Fallback'}")
+    print(f"Unsplash API: {'✅ Available' if not unsplash_api.use_fallback else '⚠️ Using Fallback'}")
     print(f"Validator: 🎯 Boundary Matching (PyTorch + CV)")
     print("=" * 60)
     print("\n🚀 Starting server...\n")

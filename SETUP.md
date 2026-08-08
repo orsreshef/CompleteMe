@@ -10,7 +10,7 @@
 
 ## Windows: Use a Short Path
 
-TensorFlow fails to install when the project path is too long. Clone or move the project to a short path before starting:
+PyTorch/torchvision can fail to install when the project path is too long. Clone or move the project to a short path before starting:
 
 ```
 C:\puzzle-game\
@@ -30,7 +30,7 @@ venv\Scripts\Activate.ps1        # Windows PowerShell
 
 # Install dependencies (~5-10 min)
 python -m pip install --upgrade pip
-pip install Flask Flask-CORS python-dotenv tensorflow opencv-python scikit-image Pillow numpy scipy scikit-learn PyWavelets requests
+pip install -r requirements.txt
 
 # Configure environment
 copy .env.example .env            # Windows
@@ -72,10 +72,10 @@ npm start
 
 ## Troubleshooting
 
-**`ModuleNotFoundError: No module named 'tensorflow'`**
+**`ModuleNotFoundError: No module named 'torch'`**
 Make sure the virtual environment is activated — you should see `(venv)` in your prompt.
 
-**TensorFlow install fails on Windows (`OSError: No such file or directory`)**
+**PyTorch/torchvision install fails on Windows (`OSError: No such file or directory`)**
 Path is too long. Move the project to `C:\puzzle-game\`, delete `backend\venv\`, and reinstall.
 
 **Port already in use**

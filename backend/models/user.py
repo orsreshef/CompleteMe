@@ -1,6 +1,4 @@
-"""
-User model — SQLAlchemy ORM definition for the users table.
-"""
+"""User model — SQLAlchemy ORM definition for the users table."""
 
 from datetime import datetime, timezone
 from extensions import db, bcrypt
@@ -18,7 +16,6 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # Relationship to game history
     game_history = db.relationship('GameHistory', backref='user', lazy=True)
 
     def set_password(self, plain_password):

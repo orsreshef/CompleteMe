@@ -1,7 +1,4 @@
-"""
-Computer Vision Validator - Updated Version
-Combines all algorithms for comprehensive validation with boundary checking
-"""
+"""Computer vision validator combining boundary matching, ResNet50, color, texture, and edge analysis."""
 
 import numpy as np
 import cv2
@@ -14,15 +11,12 @@ from models.image_processor import ImageProcessor
 
 
 class CVValidator:
-    """
-    Comprehensive validation system combining computer vision and deep learning
-    """
+    """Orchestrates all CV/DL validation algorithms for puzzle piece matching."""
 
     def __init__(self):
-        """Initialize all algorithms"""
+        """Initialize all sub-analyzers; marks has_deep_learning False if PyTorch is unavailable."""
         print("🚀 Initializing CV Validator...")
 
-        # Deep learning algorithms (PyTorch)
         try:
             self.feature_extractor = FeatureExtractor('resnet50')
             self.has_deep_learning = True
@@ -32,10 +26,7 @@ class CVValidator:
             self.feature_extractor = None
             self.has_deep_learning = False
 
-        # Boundary matching (core component)
         self.boundary_matcher = BoundaryMatcher(boundary_width=10)
-
-        # Classical Computer Vision algorithms
         self.color_analyzer = ColorAnalyzer()
         self.texture_analyzer = TextureAnalyzer()
         self.edge_analyzer = EdgeAnalyzer()
@@ -48,23 +39,11 @@ class CVValidator:
         print("✅ CV Validator initialized successfully!")
 
     def validate(self, puzzle_image, selected_piece, missing_position, threshold=0.75):
-        """
-        Fast validation (boundary check only)
-
-        Args:
-            puzzle_image: the image with the black square
-            selected_piece: the piece selected by the user
-            missing_position: dict with x, y, width, height
-            threshold: similarity threshold
-
-        Returns:
-            tuple: (is_match, confidence)
-        """
+        """Fast boundary-only validation. Returns (is_match: bool, confidence: float)."""
         try:
             is_match, confidence, _ = self.boundary_matcher.validate_piece_placement(
                 puzzle_image, selected_piece, missing_position
             )
-
             return is_match, confidence
 
         except Exception as e:
@@ -72,22 +51,11 @@ class CVValidator:
             return False, 0.0
 
     def validate_comprehensive(self, puzzle_image, selected_piece, missing_position, threshold=0.58):
-        """
-        Comprehensive validation: boundary matching + PyTorch DL + color + texture + edges.
+        """Run all five validation components and return (is_match, confidence, details).
 
-        All five components compare puzzle_image boundary strips (the strips
-        adjacent to the hole) against the matching edge strips of the selected
-        piece.  The completed_image is never used, which prevents the circular
-        comparison where the piece would be compared to itself.
-
-        Args:
-            puzzle_image: image with the black square
-            selected_piece: the piece the user selected
-            missing_position: dict with x, y, width, height
-            threshold: similarity threshold (0-1)
-
-        Returns:
-            tuple: (is_match, confidence, validation_details)
+        Components: boundary (HSV histogram), ResNet50 semantic, color, LBP texture, Canny edges.
+        All components compare puzzle boundary strips to matching piece edge strips — the completed
+        image is never used, preventing the piece from being compared to itself.
         """
         try:
             print("Running comprehensive validation...")
@@ -128,7 +96,7 @@ class CVValidator:
                     piece_resized[:, w - border:w]
                 ))
 
-            # 1. Boundary matching (HSV histogram + avg color per edge) - weight 0.35
+            # 1. Boundary matching (HSV histogram + avg color per edge) — weight 0.35
             print("  Checking boundary matching...")
             _, boundary_conf, boundary_details = self.boundary_matcher.validate_piece_placement(
                 puzzle_image, selected_piece, missing_position
@@ -137,7 +105,7 @@ class CVValidator:
             weights['boundary'] = 0.35
             print(f"    Boundary score: {boundary_conf:.3f}")
 
-            # 2. Semantic deep learning: context region vs full piece - weight 0.35
+            # 2. Semantic deep learning: context region vs full piece — weight 0.35
             # Extract ResNet50 features from the surrounding puzzle context (the region
             # around the hole) and compare them to the full candidate piece.
             # This detects whether the piece semantically belongs here:
@@ -174,8 +142,7 @@ class CVValidator:
                 validation_results['semantic'] = {'score': 0.0}
                 weights['semantic'] = 0.0
 
-            # 3. Color comparison on boundary strips - weight 0.15
-            # Compare the average BGR color of each puzzle strip to the matching piece strip.
+            # 3. Color comparison on boundary strips — weight 0.15
             print("  Analyzing colors...")
             try:
                 color_scores = []
@@ -192,8 +159,7 @@ class CVValidator:
                 validation_results['color'] = {'score': 0.0}
                 weights['color'] = 0.0
 
-            # 4. Texture comparison (LBP) on boundary strips - weight 0.10
-            # Compare LBP histograms of each puzzle strip to the matching piece strip.
+            # 4. Texture comparison (LBP) on boundary strips — weight 0.10
             print("  Analyzing textures...")
             try:
                 texture_scores = []
@@ -213,8 +179,7 @@ class CVValidator:
                 validation_results['texture'] = {'score': 0.0}
                 weights['texture'] = 0.0
 
-            # 5. Edge density comparison (Canny) on boundary strips - weight 0.05
-            # Compare the edge density of each puzzle strip to the matching piece strip.
+            # 5. Edge density comparison (Canny) on boundary strips — weight 0.05
             print("  Detecting edges...")
             try:
                 edge_scores = []
@@ -233,7 +198,6 @@ class CVValidator:
                 validation_results['edges'] = {'score': 0.0}
                 weights['edges'] = 0.0
 
-            # Compute normalized weighted confidence
             total_weight = sum(weights.values())
             if total_weight > 0:
                 normalized_weights = {k: v / total_weight for k, v in weights.items()}
@@ -257,17 +221,7 @@ class CVValidator:
             return False, 0.0, {}
 
     def _place_piece_in_image(self, puzzle_image, piece, missing_position):
-        """
-        Places a piece into the image (for deep learning validation)
-
-        Args:
-            puzzle_image: the image with the black square
-            piece: the piece
-            missing_position: the position
-
-        Returns:
-            numpy array: image with the piece placed
-        """
+        """Place a piece into the puzzle image at missing_position and return the composited copy."""
         result = puzzle_image.copy()
 
         x = missing_position['x']
@@ -275,38 +229,21 @@ class CVValidator:
         w = missing_position['width']
         h = missing_position['height']
 
-        # Resize the piece
         piece_resized = cv2.resize(piece, (w, h))
-
-        # Place it
         result[y:y+h, x:x+w] = piece_resized
 
         return result
 
     def _extract_context_region(self, puzzle_image, missing_position, margin=20):
-        """
-        Extracts the region surrounding the black square hole
-
-        Args:
-            puzzle_image: the image
-            missing_position: the position
-            margin: margin to extract around the hole
-
-        Returns:
-            numpy array: context region
-        """
+        """Extract the rectangular region surrounding the hole, expanded by margin pixels on each side."""
         x = missing_position['x']
         y = missing_position['y']
         w = missing_position['width']
         h = missing_position['height']
 
-        # Compute bounds with margin, clamped to image edges
         x1 = max(0, x - margin)
         y1 = max(0, y - margin)
         x2 = min(puzzle_image.shape[1], x + w + margin)
         y2 = min(puzzle_image.shape[0], y + h + margin)
 
-        context = puzzle_image[y1:y2, x1:x2]
-
-        return context
-
+        return puzzle_image[y1:y2, x1:x2]

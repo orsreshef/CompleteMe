@@ -1,0 +1,301 @@
+משחק פאזל עם AI — טכנולוגיות וארכיטקטורה
+==========================================
+תאריך: 08/07/2026
+
+
+=======================================================
+חלק 1 — טכנולוגיות ואלגוריתמים של הצד השרת (BACKEND)
+=======================================================
+
+--- שכבת Web / API ---
+
+Flask
+  מסגרת עבודה קלה ב-Python לבניית REST API. כל endpoint
+  (/api/puzzle/create, /api/puzzle/validate, /api/puzzle/hint)
+  הוא route שמקבל JSON, מעבד, ומחזיר JSON.
+
+Flask-CORS
+  מאפשר לדפדפן (React על port 5173) לבצע קריאות ל-API על port 5000.
+  בלי זה הדפדפן חוסם cross-origin requests.
+
+Flask-JWT-Extended
+  ניהול אותנטיקציה עם JWT tokens שנשמרים כ-HTTP-only cookies
+  (מאובטח מפני התקפות XSS).
+
+Flask-Bcrypt
+  הצפנת סיסמאות עם bcrypt — hashing אוטומטי עם salt.
+
+Flask-Limiter
+  הגבלת קצב בקשות (rate limiting) למניעת שימוש לרעה ב-API.
+
+SQLAlchemy
+  ORM לעבודה עם SQLite/PostgreSQL. מגדיר את הטבלאות User ו-GameHistory
+  כמחלקות Python.
+
+
+--- ראיה ממוחשבת (עיבוד תמונה) ---
+
+OpenCV (cv2)
+  ספריית ראיה ממוחשבת מרכזית. משמשת ל:
+    - חיתוך תמונות לחתיכות רשת
+    - יצירת ה"חור" השחור בתמונה
+    - המרת מרחבי צבע (BGR -> HSV -> RGB)
+    - Gaussian Blur ליצירת חתיכות decoy
+    - Canny Edge Detection (ראה למטה)
+    - חישוב histogramים עם cv2.calcHist + cv2.compareHist
+    - שינוי גודל חתיכות למידות אחידות
+
+NumPy
+  חישובי מערכים מספריים. כל תמונה מיוצגת כ-ndarray של פיקסלים.
+  משמש לחישוב ממוצעים, סטיית תקן, חיתוך מטריצות של רצועות גבול,
+  וחסימת ערכי פיקסלים.
+
+Pillow (PIL)
+  המרת פורמטים: NumPy arrays <-> PIL Images <-> PNG <-> base64 strings
+  לשליחה לצד הלקוח.
+
+
+--- אלגוריתם Validation — 5 שכבות ---
+
+הלוגיקה המרכזית נמצאת בקובץ backend/models/cv_validator.py.
+כל שכבה מחשבת ציון בין 0 ל-1, ומשולבים יחד במשקולות:
+
+1. Boundary Matching — HSV Histogram (משקל: 35%)
+   קובץ: backend/utils/boundary_matcher.py
+   לוקח רצועות פיקסלים ברוחב 10px מסביב לחור בתמונה ומשווה
+   לרצועות קצה תואמות של החתיכה המוצעת. עבור כל צד
+   (top/bottom/left/right):
+     - 70% — HSV Histogram Correlation עם cv2.HISTCMP_CORREL.
+       HSV עדיף על RGB כי פחות רגיש לשינויי תאורה.
+     - 30% — Euclidean distance בין ממוצעי צבע BGR של הרצועות.
+
+2. ResNet50 — למידה עמוקה סמנטית (משקל: 35%)
+   קובץ: backend/utils/feature_extraction.py
+   טוען ResNet50 מאומן על ImageNet (1.2 מיליון תמונות, 1000 קטגוריות).
+   מסיר את שכבת הסיווג הסופית ומשתמש בוקטור features של 2048 ממדים
+   כתיאור סמנטי. משווה features של אזור הקונטקסט סביב החור עם ה-features
+   של החתיכה המוצעת באמצעות Cosine Similarity (זווית בין וקטורים).
+   מאפשר לזהות שעין מתאימה לקונטקסט של פנים, אבל פרח לא מתאים.
+
+3. Color Analysis — צבעי רצועות גבול (משקל: 15%)
+   מחשב ממוצע BGR לרצועות הגבול ומשווה. פשוט אבל יעיל לתמונות
+   עם צבע דומיננטי אחיד.
+
+4. LBP — Local Binary Patterns, מרקם (משקל: 10%)
+   קובץ: backend/utils/texture_analysis.py
+   אלגוריתם קלאסי לתיאור מרקם. עבור כל פיקסל, משווה אותו ל-8 שכניו
+   ובונה מספר בינארי 8-ביט. בונה histogram של patterns ומשווה
+   עם Chi-Square distance. מזהה אם שני patches הם מאותה טקסטורה
+   (עצים/שמיים/מים וכו').
+
+5. Canny Edge Detection — קצוות (משקל: 5%)
+   מחשב צפיפות קצוות (אחוז פיקסלים שהם קצה) ברצועות הגבול.
+   אם לחתיכה המוצעת יש אותה צפיפות קצוות כמו לתמונה — סימן חיובי.
+   Canny משתמש בשני ערכי סף (50, 150) ומבצע Gaussian smoothing לפני.
+
+לוגיקת Tie-Breaking (backend/app.py שורות 360-393):
+  כל 6 החתיכות מדורגות לפי boundary score.
+  אם המשתמש בחר את מדרגה 1 -> נכון.
+  אם יש תיקו (הפרש < 0.02) -> מבוצע comprehensive validation
+  לכל המתחרים והמנצח נקבע לפי הציון הגבוה יותר.
+
+
+=======================================================
+חלק 2 — מקביליות (ThreadPoolExecutor)
+=======================================================
+
+קובץ: backend/models/puzzle_generator.py (שורות 48-53)
+
+  with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
+      main_future = executor.submit(fetch_main)
+      decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
+
+כשמשתמש מתחיל משחק, צריך להוריד תמונה ראשית + 5 תמונות decoy
+מ-Unsplash API. בצורה סדרתית זה היה לוקח כ-5-6 שניות.
+עם ThreadPoolExecutor כל הורדה רצה ב-thread נפרד בו-זמנית.
+בפועל זה לוקח פחות משנייה — הזמן שווה ל-thread האיטי ביותר,
+לא לסכום כולם.
+
+קשר לקורס חישוב מקבילי ומבוזר:
+  זהו Thread-level Parallelism על מחשב בודד.
+  ה-ThreadPoolExecutor, אובייקטי Future, וה-synchronization
+  (המתנה עם .result()) הם בדיוק המושגים הנלמדים בקורס.
+  as_completed() הוא non-blocking — מעבד threads שמסתיימים ראשונים
+  בלי לחכות לסדר.
+
+האם תלוי במספר ליבות של המחשב?
+  תשובה חשובה: Python מריץ threads, אבל ה-GIL (Global Interpreter Lock)
+  מונע ממספר threads לבצע קוד Python בו-זמנית על ליבות שונות.
+  אולם — כשthread מחכה לתגובת HTTP (עבודה מסוג I/O-bound),
+  הוא משחרר את ה-GIL. לכן במקרה שלנו (הורדת תמונות מהאינטרנט),
+  ה-threads כן רצים במקביל אמיתי כי הזמן נבלה בהמתנה לרשת
+  ולא בביצוע קוד Python.
+  מסקנה: לא תלוי במספר ליבות — גם מחשב עם ליבה אחת נהנה
+  מהמקביליות כי זו I/O-bound parallelism ולא CPU-bound.
+
+
+=======================================================
+חלק 3 — למידה עמוקה וראיה ממוחשבת — סיכום
+=======================================================
+
+למידה עמוקה (Deep Learning):
+  ResNet50 (Residual Network, 50 שכבות) הוא רשת נוירונים קונבולוציונית
+  שפותחה על ידי Microsoft Research, מאומנת על ImageNet.
+  משתמשים בה כ-feature extractor — שכבת הסיווג מוסרת ווקטור
+  ה-features של 2048 ממדים מקודד את התוכן הסמנטי של התמונה
+  (מה התמונה "אומרת" מושגית, לא רק ערכי פיקסלים).
+  מסגרת העבודה: PyTorch + torchvision. רץ על CPU אם אין GPU עם CUDA.
+
+ראיה ממוחשבת קלאסית:
+  השוואת HSV histogramים, ניתוח מרקם עם LBP, Canny edge detection,
+  והשוואת צבעי רצועות גבול הם אלגוריתמים קלאסיים שאינם דורשים
+  נתוני אימון. הם מהירים, מובנים, ומשלימים את האות הסמנטי
+  של הלמידה העמוקה.
+
+מערכת Hint (רמז):
+  כשמשתמש מבקש רמז, ResNet50 מחלץ features מאזור הקונטקסט
+  סביב החור ומשווה לכל 6 החתיכות. החתיכה הדומה ביותר מניעה
+  רמז בשפה טבעית המתאר את הצבע והמרקם שלה.
+  נופל חזרה לניתוח צבעי גבול אם PyTorch לא זמין.
+
+
+=======================================================
+חלק 4 — טכנולוגיות הצד הלקוח (FRONTEND)
+=======================================================
+
+בסיס:
+  React 18 — ספריית UI. בנוי כ-SPA (Single Page Application).
+  המצב הגלובלי (difficulty, gameData, user) נמצא ב-App.jsx
+  ומועבר לרכיבים כ-props.
+
+Build Tool:
+  Vite — כלי בנייה מהיר עם Hot Module Replacement בפיתוח.
+
+Routing:
+  React Router DOM — ניהול ניווט ב-SPA.
+  כל מסך הוא route (/login, /game, /play, /finished וכו').
+
+אנימציות:
+  Framer Motion — ספריית אנימציות ל-React. כמעט כל האנימציות
+  בפרויקט (כניסת אלמנטים, transitions, spring animations) נעשות בה.
+
+הודעות:
+  React-Toastify — הודעות popup (toast) — "Puzzle created!",
+  שגיאות, רמזים.
+
+קונפטי:
+  React-Confetti — אפקט חלקיקי הקונפטי בסיום הפאזל (ראה למטה).
+
+HTTP Client:
+  Axios — שליחת HTTP requests ל-backend, עם base URL ו-credentials
+  מוגדרים גלובלית.
+
+Drag and Drop:
+  HTML5 Drag and Drop API הסטנדרטי (draggable, onDragStart,
+  onDragOver, onDrop) — ללא ספריות חיצוניות. מצב הצבה מנוהל
+  כ-object: { zoneIndex -> optionIndex }.
+
+עיצוב Responsive:
+  Drop zones ממוקמות באחוזים ולא בפיקסלים, כך שנשארות מדויקות
+  מעל החור בכל גודל מסך.
+
+
+=======================================================
+חלק 5 — שלושת האפקטים המיוחדים בצד הלקוח
+=======================================================
+
+1. עיגול הטעינה המסתובב (Spinner)
+   קבצים: LoadingScreen.css (שורות 80-88) ו-index.css (שורות 197-203)
+
+   איך זה עובד:
+   div רגיל עם border-radius: 50% הופך לעיגול.
+   ה-border מוגדר כולו שקוף מלבד הצד העליון (border-top-color: white)
+   — זה יוצר את הקשת הלבנה. אנימציית CSS בשם "spin" מסובבת
+   את ה-div 360 מעלות בכל שנייה, ברציפות, עם מהירות קבועה (linear).
+   זה CSS בלבד — אין JavaScript מעורב.
+
+     @keyframes spin {
+       from { transform: rotate(0deg); }
+       to   { transform: rotate(360deg); }
+     }
+     .spinner {
+       border: 4px solid rgba(255,255,255,0.3);
+       border-top-color: white;
+       border-radius: 50%;
+       animation: spin 1s linear infinite;
+     }
+
+
+2. שלוש חתיכות הפאזל המסתובבות
+   קובץ: frontend/src/components/LoadingScreen/LoadingScreen.jsx (שורות 40-83)
+
+   איך זה עובד:
+   שלושה אלמנטי <motion.div> של Framer Motion, כל אחד מציג
+   אמוג'י פאזל 🧩 עם הגדרות אנימציה שונות:
+
+     חתיכה 1: rotate [0, 360],   scale [1, 1.2, 1], delay 0 שניות
+     חתיכה 2: rotate [360, 0],   scale [1, 1.2, 1], delay 0.3 שניות
+     חתיכה 3: rotate [0, 360],   scale [1, 1.2, 1], delay 0.6 שניות
+
+   - מערך rotate: Framer Motion עובר בלופ בין הערכים.
+     [0, 360] = סיבוב עם כיוון השעון, [360, 0] = נגד כיוון השעון.
+   - scale [1, 1.2, 1]: גדל ב-20% ואז חוזר — יוצר תחושת "פעימה".
+   - repeat: Infinity — חוזר ללא הגבלה.
+   - ה-delay השונה (0 / 0.3 / 0.6) גורם לחתיכות לא לנוע בסנכרון
+     — יוצר אפקט גל נעים במקום תנועה יבשה ואחידה.
+   - ease: 'easeInOut' — מאיץ בהתחלה ומאט בסוף, מה שגורם לסיבוב
+     להיראות אורגני ולא מכני.
+
+
+3. אפקט הקונפטי בסיום הפאזל
+   קובץ: frontend/src/App.jsx (שורות 5, 239-246)
+
+   איך זה עובד:
+   ספריית react-confetti מציירת 500 חלקיקים צבעוניים על canvas
+   שמכסה את כל המסך (גובה ורוחב החלון).
+   כל חלקיק הוא polygon עם פיזיקה פשוטה: מהירות ראשונית כלפי מעלה,
+   כוח כבידה כלפי מטה, סיבוב אקראי.
+
+     <Confetti
+       width={window.innerWidth}
+       height={window.innerHeight}
+       recycle={false}
+       numberOfPieces={500}
+       onConfettiComplete={() => setShowConfetti(false)}
+     />
+
+   - recycle={false}: חלקיקים לא מתחדשים אחרי שנפלו — פרץ אחד בלבד.
+   - onConfettiComplete: מסיר את ה-component מה-DOM אחרי שכל הקונפטי נפל.
+   - Trigger: הפונקציה handleGameComplete() ב-App.jsx מופעלת כשהשרת
+     מחזיר is_correct: true, ומציבה showConfetti = true.
+
+
+=======================================================
+חלק 6 — החלטות ארכיטקטורה נוספות
+=======================================================
+
+JWT ב-HTTP-only Cookie:
+  ה-JWT token נשמר ב-HTTP-only cookie ולא ב-localStorage.
+  localStorage נגיש מ-JavaScript וחשוף להתקפות XSS.
+  HTTP-only cookies נשלחים אוטומטית על ידי הדפדפן ולא ניתן
+  לקרוא אותם מ-JavaScript — זהו דפוס אבטחה נכון.
+
+ספירה לאחור אוטומטית אחרי ניצחון:
+  אחרי פתרון נכון, ספירה לאחור של 5 שניות מתחילה ולאחריה
+  מתחיל משחק חדש אוטומטית. ממומש עם setTimeout ב-useEffect
+  שרץ מחדש בכל פעם ש-completionCountdown משתנה (App.jsx שורות 54-63).
+
+אין correct_index מאוחסן:
+  השרת לא שומר איזו חתיכה היא "הנכונה". ה-validation מבוצע
+  לגמרי על ידי השוואת CV/DL בזמן האמת — אין טבלת חיפוש.
+  זוהי החלטת עיצוב מכוונת שמבטיחה שה-AI הוא שקובע, לא פשוט
+  השוואה למפתח קבוע.
+
+מצב משחק בזיכרון:
+  active_games הוא Python dict בזיכרון (app.py). בסביבת production
+  זה יוחלף ב-Redis או מסד נתונים, אבל לשרת יחיד זה פשוט ומהיר.
+
+מבנה תיקיות רכיבים:
+  כל רכיב frontend נמצא בתיקיית משנה משלו:
+  frontend/src/components/<ComponentName>/<ComponentName>.jsx + .css
+  זה שומר על styles ממוקדים לרכיב שלהם ומונע התנגשויות שמות.
