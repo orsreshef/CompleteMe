@@ -48,7 +48,7 @@ class PuzzleGenerator:
         with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
             main_future = executor.submit(fetch_main)
             decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
-            # executor.__exit__ waits for all futures before continuing
+            # executor.__exit__ waits for all futures before continuing, also result() do the same
             main_image, fetched_url = main_future.result()
             decoy_images = [f.result() for f in decoy_futures]
         return main_image, fetched_url, decoy_images
