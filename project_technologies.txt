@@ -1,0 +1,310 @@
+AI Puzzle Game — Project Technologies & Architecture
+=====================================================
+Prepared for: Project Partner
+Date: 2026-07-08
+
+
+=======================================================
+PART 1 — BACKEND TECHNOLOGIES & ALGORITHMS
+=======================================================
+
+--- Web / API Layer ---
+
+Flask
+  A lightweight Python web framework. Every endpoint (/api/puzzle/create,
+  /api/puzzle/validate, /api/puzzle/hint) is a route that receives JSON,
+  processes it, and returns JSON.
+
+Flask-CORS
+  Allows the browser (React on port 5173) to make requests to the API on port 5000.
+  Without it, the browser blocks cross-origin requests.
+
+Flask-JWT-Extended
+  Authentication management using JWT tokens stored as HTTP-only cookies
+  (secure against XSS attacks).
+
+Flask-Bcrypt
+  Password hashing using bcrypt (includes automatic salting).
+
+Flask-Limiter
+  Rate limiting to prevent API abuse.
+
+SQLAlchemy
+  ORM for working with SQLite/PostgreSQL. Defines the User and GameHistory
+  tables as Python classes.
+
+
+--- Computer Vision (Image Processing) ---
+
+OpenCV (cv2)
+  The main computer vision library. Used for:
+    - Splitting images into grid pieces
+    - Creating the black "hole" square
+    - Color space conversion (BGR -> HSV -> RGB)
+    - Gaussian Blur for decoy piece generation
+    - Canny Edge Detection (see below)
+    - Histogram computation with cv2.calcHist + cv2.compareHist
+    - Resizing pieces to uniform dimensions
+
+NumPy
+  Numerical array computations. Every image is stored as an ndarray of pixels.
+  Used for averages, standard deviation, matrix slicing of boundary strips,
+  and pixel value clipping.
+
+Pillow (PIL)
+  Format conversion: NumPy arrays <-> PIL Images <-> PNG <-> base64 strings
+  for sending to the frontend.
+
+
+--- Validation Algorithm — 5 Layers ---
+
+The core logic is in backend/models/cv_validator.py.
+Each layer produces a score between 0 and 1, combined with weights:
+
+1. Boundary Matching — HSV Histogram (weight: 35%)
+   File: backend/utils/boundary_matcher.py
+   Takes 10px pixel strips around the puzzle hole and matches them against
+   the corresponding edge strips of the candidate piece. For each side
+   (top/bottom/left/right):
+     - 70% weight: HSV Histogram Correlation using cv2.HISTCMP_CORREL.
+       Uses HSV instead of RGB because it is less sensitive to lighting changes.
+     - 30% weight: Euclidean distance between average BGR colors of the strips.
+
+2. ResNet50 — Deep Learning Semantic (weight: 35%)
+   File: backend/utils/feature_extraction.py
+   Loads ResNet50 pretrained on ImageNet (1.2M images, 1000 categories).
+   Removes the final classification head and uses the 2048-dimensional
+   feature vector as a semantic descriptor.
+   Compares features of the puzzle context region (area around the hole)
+   with features of the candidate piece using Cosine Similarity
+   (angle between vectors in high-dimensional space).
+
+3. Color Analysis — Boundary Strip Colors (weight: 15%)
+   Computes average BGR for boundary strips and compares.
+   Simple but effective for images with dominant uniform colors.
+
+4. LBP — Local Binary Patterns, Texture (weight: 10%)
+   File: backend/utils/texture_analysis.py
+   A classical texture descriptor. For each pixel, compares it to its 8
+   neighbors and builds an 8-bit binary number. Builds a histogram of
+   patterns and compares using Chi-Square distance.
+   Identifies whether two patches share the same texture
+   (trees / sky / water / etc.).
+
+5. Canny Edge Detection (weight: 5%)
+   Computes edge density (fraction of edge pixels) in boundary strips.
+   If the candidate piece strip has the same edge density as the puzzle
+   strip, it is a positive signal. Canny uses two thresholds (50, 150)
+   and applies Gaussian smoothing before detection.
+
+
+Tie-Breaking Logic (backend/app.py lines 360-393):
+  All 6 candidate pieces are ranked by boundary score.
+  If the user selected rank #1 -> correct.
+  If there is a tie (difference < 0.02) -> comprehensive validation is run
+  on all tied competitors and the winner is determined by the higher score.
+
+
+=======================================================
+PART 2 — PARALLELISM (ThreadPoolExecutor)
+=======================================================
+
+File: backend/models/puzzle_generator.py (lines 48-53)
+
+  with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
+      main_future = executor.submit(fetch_main)
+      decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
+
+When a game starts, we need to download 1 main image + 5 decoy images
+from the Unsplash API. Sequentially this would take ~5-6 seconds.
+With ThreadPoolExecutor every download runs in a separate thread simultaneously.
+In practice it takes less than 1 second — the time equals the slowest thread,
+not the sum of all threads.
+
+Connection to Parallel & Distributed Computing course:
+  This is Thread-level Parallelism on a single machine.
+  The ThreadPoolExecutor, Future objects, and synchronization (waiting with
+  .result()) are exactly the concepts covered in the course.
+  as_completed() is non-blocking — processes threads that finish first
+  without waiting for order.
+
+Does it depend on the number of CPU cores?
+  Important answer: Python threads exist, but the GIL (Global Interpreter Lock)
+  prevents multiple threads from executing Python code simultaneously on
+  different cores. HOWEVER, when a thread is waiting for an HTTP response
+  (I/O-bound work), it releases the GIL. So in our case (downloading images
+  from the internet), threads DO run in true parallel because the time is
+  spent waiting for the network, not running Python code.
+  Conclusion: NOT dependent on core count — even a single-core machine
+  benefits because this is I/O-bound parallelism, not CPU-bound.
+
+
+=======================================================
+PART 3 — DEEP LEARNING & COMPUTER VISION SUMMARY
+=======================================================
+
+Deep Learning:
+  ResNet50 (Residual Network, 50 layers) is a convolutional neural network
+  architecture developed by Microsoft Research, trained on ImageNet.
+  We use it as a feature extractor — the classification head is removed and
+  the 2048-dimensional feature vector encodes semantic content of the image
+  (what the image "means" conceptually, not just its pixel values).
+  This allows the system to detect that an eye matches a face context,
+  but a flower does not.
+  Framework: PyTorch + torchvision. Runs on CPU if no CUDA GPU is available.
+
+Computer Vision (classical):
+  The HSV histogram comparison, LBP texture analysis, Canny edge detection,
+  and boundary strip color matching are all classical CV algorithms that
+  do not require training data. They are fast, explainable, and
+  complementary to the DL semantic signal.
+
+Hint System:
+  When the user requests a hint, ResNet50 extracts features from the puzzle
+  context region (the area around the hole) and compares them to all 6
+  candidate pieces. The most similar piece drives a natural-language hint
+  describing its color and texture appearance. Falls back to boundary color
+  analysis if PyTorch is unavailable.
+
+
+=======================================================
+PART 4 — FRONTEND TECHNOLOGIES
+=======================================================
+
+Core Framework:
+  React 18 — UI library. Built as an SPA (Single Page Application).
+  Global state (difficulty, gameData, user) lives in App.jsx and is
+  passed to components as props.
+
+Build Tool:
+  Vite — fast build tool with Hot Module Replacement in development.
+
+Routing:
+  React Router DOM — manages routing in the SPA.
+  Each screen is a route (/login, /game, /play, /finished, etc.).
+
+Animation:
+  Framer Motion — animation library for React. Nearly all animations
+  (element entry, transitions, spring animations) use this library.
+
+Notifications:
+  React-Toastify — popup toast notifications ("Puzzle created!", errors, hints).
+
+Confetti:
+  React-Confetti — the confetti particle effect on puzzle completion (see below).
+
+HTTP Client:
+  Axios — sends HTTP requests to the backend, with base URL and credentials
+  configured globally.
+
+Drag and Drop:
+  HTML5 native Drag and Drop API (draggable, onDragStart, onDragOver, onDrop)
+  — no external library. The placement state is tracked as an object:
+  { zoneIndex -> optionIndex }.
+
+Responsive Layout:
+  Drop zones are positioned using percentages, not pixels, so they stay
+  accurately aligned over the hole regardless of screen size.
+
+
+=======================================================
+PART 5 — THE THREE SPECIAL FRONTEND EFFECTS
+=======================================================
+
+1. The Loading Spinner (rotating circle)
+   File: frontend/src/components/LoadingScreen/LoadingScreen.css (lines 80-88)
+   and frontend/src/index.css (lines 197-203)
+
+   How it works:
+   A plain <div> with border-radius: 50% becomes a circle.
+   The border is defined as fully transparent except the top side
+   (border-top-color: white), which creates the white arc.
+   The CSS animation "spin" rotates the div 360 degrees every 1 second,
+   infinitely, with linear timing (constant speed).
+   This is pure CSS — no JavaScript involved.
+
+     @keyframes spin {
+       from { transform: rotate(0deg); }
+       to   { transform: rotate(360deg); }
+     }
+     .spinner {
+       border: 4px solid rgba(255,255,255,0.3);
+       border-top-color: white;
+       border-radius: 50%;
+       animation: spin 1s linear infinite;
+     }
+
+
+2. Three Rotating Puzzle Pieces Animation
+   File: frontend/src/components/LoadingScreen/LoadingScreen.jsx (lines 40-83)
+
+   How it works:
+   Three <motion.div> elements (Framer Motion) each render the puzzle emoji.
+   Each has different animation settings:
+
+     Piece 1: rotate [0, 360],   scale [1, 1.2, 1], delay 0s
+     Piece 2: rotate [360, 0],   scale [1, 1.2, 1], delay 0.3s
+     Piece 3: rotate [0, 360],   scale [1, 1.2, 1], delay 0.6s
+
+   - rotate array: Framer Motion loops through the values.
+     [0, 360] = clockwise, [360, 0] = counter-clockwise.
+   - scale [1, 1.2, 1]: grows 20% then returns — creates a "pulse" feel.
+   - repeat: Infinity — loops forever.
+   - The different delays (0 / 0.3 / 0.6) prevent the pieces from moving
+     in sync, creating a wave-like effect instead of stiff uniform motion.
+   - ease: 'easeInOut' — accelerates at start, decelerates at end,
+     making the rotation feel organic.
+
+
+3. Confetti Effect on Puzzle Completion
+   File: frontend/src/App.jsx (lines 5, 239-246)
+
+   How it works:
+   The react-confetti library renders 500 colored particles on a <canvas>
+   element that covers the entire screen (window.innerWidth x innerHeight).
+   Each particle is a colored polygon with simple physics:
+   initial upward velocity, downward gravity, random rotation.
+
+     <Confetti
+       width={window.innerWidth}
+       height={window.innerHeight}
+       recycle={false}
+       numberOfPieces={500}
+       onConfettiComplete={() => setShowConfetti(false)}
+     />
+
+   - recycle={false}: particles are not recycled after falling — one burst only.
+   - onConfettiComplete: removes the component from the DOM after all particles fall.
+   - Trigger: handleGameComplete() in App.jsx is called when the backend
+     returns is_correct: true, which sets showConfetti to true.
+
+
+=======================================================
+PART 6 — ADDITIONAL NOTABLE ARCHITECTURE DECISIONS
+=======================================================
+
+JWT in HTTP-only Cookies:
+  The JWT token is stored in an HTTP-only cookie, not localStorage.
+  localStorage is accessible from JavaScript and vulnerable to XSS attacks.
+  HTTP-only cookies can only be sent by the browser automatically and cannot
+  be read by JavaScript — a security best practice.
+
+Completion Countdown (Auto-Replay):
+  After a win, a 5-second countdown auto-starts a new game.
+  Implemented with setTimeout in a useEffect that re-runs every time
+  completionCountdown changes (App.jsx lines 54-63).
+
+No correct_index Stored:
+  The backend never stores which piece is "correct". Validation is done
+  entirely by CV/DL comparison at answer time — the system never has a
+  lookup table to cheat from. This is a deliberate design choice.
+
+In-Memory Game State:
+  active_games is a Python dict in memory (app.py). In production this
+  would be replaced by Redis or a database, but for a single-server
+  deployment it is simple and fast.
+
+Component Folder Structure:
+  Every frontend component lives in its own subfolder:
+  frontend/src/components/<ComponentName>/<ComponentName>.jsx + .css
+  This keeps styles scoped to their component and avoids naming collisions.
