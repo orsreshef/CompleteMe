@@ -47,7 +47,8 @@ class PuzzleGenerator:
 
         with ThreadPoolExecutor(max_workers=1 + decoy_count) as executor:
             main_future = executor.submit(fetch_main)
-            decoy_futures = [executor.submit(fetch_decoy, i) for i in range(decoy_count)]
+            decoy_futures = [executor.submit(
+                fetch_decoy, i) for i in range(decoy_count)]
             # executor.__exit__ waits for all futures before continuing, also result() do the same
             main_image, fetched_url = main_future.result()
             decoy_images = [f.result() for f in decoy_futures]
@@ -68,7 +69,8 @@ class PuzzleGenerator:
         # Clamp num_regions: at least 1, at most 4, never >= total pieces
         num_regions = max(1, min(int(num_regions), 4, num_pieces - 1))
 
-        print(f"Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces, {num_regions} missing)")
+        print(
+            f"Creating puzzle: {difficulty_info['name']} ({num_pieces} pieces, {num_regions} missing)")
 
         image = self.image_processor.resize_image(
             image, max_size=Config.MAX_IMAGE_DIMENSION, maintain_aspect=True)
@@ -79,6 +81,7 @@ class PuzzleGenerator:
         piece_height = image.shape[0] // grid_rows
         piece_width = image.shape[1] // grid_cols
 
+        # pieces is row-major flat list: pieces[i] is grid cell (row=i//cols, col=i%cols)
         missing_indices = random.sample(range(len(pieces)), num_regions)
 
         missing_pieces = []
@@ -86,6 +89,7 @@ class PuzzleGenerator:
         puzzle_image = image.copy()
 
         for missing_index in missing_indices:
+            # reverse the flat index back into (row, col) on the grid
             missing_row = missing_index // grid_cols
             missing_col = missing_index % grid_cols
 
@@ -98,13 +102,16 @@ class PuzzleGenerator:
                 'col': missing_col,
                 'index': missing_index
             }
+
+            # save the hole's position and size, so we know where to draw it later
             missing_positions.append(pos)
+            # save the real piece image, so it can be added to the 6 answer choices
             missing_pieces.append(pieces[missing_index])
 
             puzzle_image = self.image_processor.create_black_square(
                 puzzle_image, pos['x'], pos['y'], pos['width'], pos['height'])
 
-        # Pool always has 6 pieces: num_regions correct + (6 - num_regions) decoys
+        # Pool of answers - always has 6 pieces: num_regions correct + (6 - num_regions) decoys
         decoy_count = max(6 - num_regions, 2)
         decoy_pieces = self._generate_decoy_pieces(
             piece_width, piece_height,
@@ -116,6 +123,8 @@ class PuzzleGenerator:
         all_options = missing_pieces + decoy_pieces
         random.shuffle(all_options)
 
+        # correct_indices IS computed in puzzle_data, but app.py's
+        # active_games never stores it — validate_answer never reads this value, it decides correctness purely via CV scores
         correct_indices = []
         used = set()
         for correct_piece in missing_pieces:
@@ -143,7 +152,8 @@ class PuzzleGenerator:
             'grid_cols': grid_cols
         }
 
-        print(f"Puzzle created: {num_regions} region(s), {len(all_options)} options")
+        print(
+            f"Puzzle created: {num_regions} region(s), {len(all_options)} options")
         return puzzle_data
 
     def _calculate_grid_dimensions(self, num_pieces):
@@ -182,7 +192,8 @@ class PuzzleGenerator:
                 piece_h = h - y if row == rows - 1 else piece_height
                 piece_w = w - x if col == cols - 1 else piece_width
 
-                piece = self.image_processor.crop_image(image, x, y, piece_w, piece_h)
+                piece = self.image_processor.crop_image(
+                    image, x, y, piece_w, piece_h)
                 pieces.append(piece)
 
         return pieces
@@ -197,9 +208,11 @@ class PuzzleGenerator:
                 raw_image = prefetched_images[i] if prefetched_images else None
                 if raw_image is None:
                     query = random.choice(queries)
-                    raw_image, _ = self.unsplash_api.get_random_image(query=query)
+                    raw_image, _ = self.unsplash_api.get_random_image(
+                        query=query)
                 if raw_image is None:
-                    print(f"⚠️ Failed to get decoy image {i+1}, using fallback")
+                    print(
+                        f"⚠️ Failed to get decoy image {i+1}, using fallback")
                     return self._create_fallback_decoy(width, height)
                 return self._extract_random_crop(raw_image, width, height)
             except Exception as e:
@@ -211,7 +224,8 @@ class PuzzleGenerator:
             decoys = [process_one(i) for i in range(count)]
         else:
             with ThreadPoolExecutor(max_workers=count) as executor:
-                futures = {executor.submit(process_one, i): i for i in range(count)}
+                futures = {executor.submit(
+                    process_one, i): i for i in range(count)}
                 decoys = [None] * count
                 for future in as_completed(futures):
                     decoys[futures[future]] = future.result()
@@ -222,6 +236,7 @@ class PuzzleGenerator:
         """Extract a random crop of target_width × target_height from image, upscaling if needed."""
         h, w = image.shape[:2]
 
+        # if we got from unsplash smaller image than the target size, upscale it first to ensure we can crop the desired size
         if h < target_height or w < target_width:
             scale = max(target_height / h, target_width / w) * 1.2
             image = cv2.resize(image, (int(w * scale), int(h * scale)))
@@ -247,8 +262,10 @@ class PuzzleGenerator:
                 (height, width)
             )
 
+        # Gaussian noise
         noise = np.random.normal(0, 20, (height, width, 3)).astype(np.int16)
-        piece = np.clip(piece.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+        piece = np.clip(piece.astype(np.int16) +
+                        noise, 0, 255).astype(np.uint8)
         piece = cv2.GaussianBlur(piece, (5, 5), 0)
 
         return piece

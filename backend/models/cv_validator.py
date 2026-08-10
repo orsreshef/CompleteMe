@@ -3,7 +3,6 @@
 import numpy as np
 import cv2
 from utils.feature_extraction import FeatureExtractor
-from utils.color_analysis import ColorAnalyzer
 from utils.texture_analysis import TextureAnalyzer
 from utils.edge_detection import EdgeAnalyzer
 from utils.boundary_matcher import BoundaryMatcher
@@ -27,7 +26,6 @@ class CVValidator:
             self.has_deep_learning = False
 
         self.boundary_matcher = BoundaryMatcher(boundary_width=10)
-        self.color_analyzer = ColorAnalyzer()
         self.texture_analyzer = TextureAnalyzer()
         self.edge_analyzer = EdgeAnalyzer()
 
