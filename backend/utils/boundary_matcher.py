@@ -133,30 +133,3 @@ class BoundaryMatcher:
             import traceback
             traceback.print_exc()
             return False, 0.0, {}
-
-    def visualize_boundaries(self, puzzle_image, selected_piece, missing_position):
-        """Return a copy of puzzle_image with boundary strips highlighted in colour for debugging."""
-        vis = puzzle_image.copy()
-
-        x = missing_position['x']
-        y = missing_position['y']
-        w = missing_position['width']
-        h = missing_position['height']
-
-        thickness = self.boundary_width
-
-        if y >= thickness:
-            cv2.rectangle(vis, (x, y - thickness), (x + w, y), (0, 0, 255), -1)
-
-        if y + h + thickness <= vis.shape[0]:
-            cv2.rectangle(vis, (x, y + h), (x + w, y + h + thickness), (0, 255, 0), -1)
-
-        if x >= thickness:
-            cv2.rectangle(vis, (x - thickness, y), (x, y + h), (255, 0, 0), -1)
-
-        if x + w + thickness <= vis.shape[1]:
-            cv2.rectangle(vis, (x + w, y), (x + w + thickness, y + h), (0, 255, 255), -1)
-
-        cv2.rectangle(vis, (x, y), (x + w, y + h), (255, 255, 255), 2)
-
-        return vis

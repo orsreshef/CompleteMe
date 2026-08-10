@@ -104,30 +104,6 @@ class UnsplashAPI:
             print(f"❌ Error fetching from Unsplash: {e}")
             return self._get_random_image_fallback(), ''
 
-    def get_multiple_random_images(self, count=5, query=None):
-        """Fetch count random images sequentially with slight query variation for diversity."""
-        images = []
-
-        for i in range(count):
-            if query:
-                queries = [query, f'{query} closeup', f'{query} detail',
-                           f'{query} texture', f'{query} pattern']
-                current_query = random.choice(queries)
-            else:
-                current_query = random.choice(['nature', 'abstract', 'texture',
-                                              'pattern', 'minimal', 'city'])
-
-            image = self.get_random_image(query=current_query)
-
-            if image is not None:
-                images.append(image)
-
-            if not self.use_fallback and i < count - 1:
-                import time
-                time.sleep(0.5)
-
-        return images
-
     def _get_random_image_fallback(self):
         """Generate a random-coloured noise image as a stand-in when Unsplash is unavailable."""
         width = random.randint(400, 800)
@@ -149,19 +125,3 @@ class UnsplashAPI:
         image = cv2.GaussianBlur(image, (5, 5), 0)
 
         return image
-
-    def test_api_connection(self):
-        """Return True if the Unsplash API responds with HTTP 200, False otherwise."""
-        if not self.access_key:
-            return False
-
-        try:
-            url = f"{self.base_url}{Config.UNSPLASH_RANDOM_ENDPOINT}"
-            headers = {'Authorization': f'Client-ID {self.access_key}'}
-            params = {'count': 1}
-
-            response = _get_thread_session().get(url, headers=headers, params=params, timeout=5)
-            return response.status_code == 200
-
-        except:
-            return False

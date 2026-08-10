@@ -22,6 +22,14 @@ class EdgeAnalyzer:
         blurred = cv2.GaussianBlur(gray, (5, 5), 1.4)
         return cv2.Canny(blurred, low_threshold, high_threshold)
 
+    # NOTE: detect_edges_sobel, calculate_edge_histogram, compare_edge_histograms,
+    # calculate_hausdorff_distance, and validate_edge_match below implement a more
+    # elaborate edge-comparison approach (density + orientation histogram + Hausdorff
+    # distance + Sobel correlation, weighted together). We evaluated this approach but
+    # ended up using the simpler one instead: CVValidator.validate_comprehensive only
+    # compares Canny edge density on the boundary strips (detect_edges_canny), which
+    # proved accurate enough for this task and far cheaper to compute. Left here as a
+    # record of the alternative we considered.
     def detect_edges_sobel(self, image):
         """Compute Sobel gradient magnitude and return it as a uint8 image."""
         if len(image.shape) == 3:
@@ -34,17 +42,6 @@ class EdgeAnalyzer:
         magnitude = np.sqrt(sobelx**2 + sobely**2)
         return (magnitude / magnitude.max() * 255).astype(np.uint8)
 
-    def detect_edges_laplacian(self, image):
-        """Detect edges with the Laplacian operator after Gaussian smoothing."""
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
-
-        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-        laplacian = np.abs(cv2.Laplacian(blurred, cv2.CV_64F))
-        return (laplacian / laplacian.max() * 255).astype(np.uint8)
-
     def calculate_edge_histogram(self, edges, bins=8):
         """Compute an orientation histogram over detected edge pixels using Sobel gradients."""
         sobelx = cv2.Sobel(edges, cv2.CV_64F, 1, 0, ksize=3)
@@ -53,47 +50,6 @@ class EdgeAnalyzer:
         hist, _ = np.histogram(
             angles[edges > 0], bins=bins, range=(-np.pi, np.pi), density=True)
         return hist
-
-    def analyze_edge_continuity(self, puzzle_image, selected_patch, position):
-        """Check how well piece edges align with puzzle edges at each boundary side.
-        Returns the mean IoU score over available boundary directions."""
-        x, y, w, h = position
-
-        edges_puzzle = self.detect_edges_canny(puzzle_image)
-        edges_patch = self.detect_edges_canny(selected_patch)
-
-        border_width = 5
-        continuity_scores = []
-
-        if y >= border_width:
-            bp = edges_puzzle[y-border_width:y, x:x+w]
-            bpa = edges_patch[0:border_width, :]
-            if bp.shape == bpa.shape:
-                continuity_scores.append(
-                    np.sum(bp & bpa) / max(np.sum(bp | bpa), 1))
-
-        if y + h + border_width < edges_puzzle.shape[0]:
-            bp = edges_puzzle[y+h:y+h+border_width, x:x+w]
-            bpa = edges_patch[-border_width:, :]
-            if bp.shape == bpa.shape:
-                continuity_scores.append(
-                    np.sum(bp & bpa) / max(np.sum(bp | bpa), 1))
-
-        if x >= border_width:
-            bp = edges_puzzle[y:y+h, x-border_width:x]
-            bpa = edges_patch[:, 0:border_width]
-            if bp.shape == bpa.shape:
-                continuity_scores.append(
-                    np.sum(bp & bpa) / max(np.sum(bp | bpa), 1))
-
-        if x + w + border_width < edges_puzzle.shape[1]:
-            bp = edges_puzzle[y:y+h, x+w:x+w+border_width]
-            bpa = edges_patch[:, -border_width:]
-            if bp.shape == bpa.shape:
-                continuity_scores.append(
-                    np.sum(bp & bpa) / max(np.sum(bp | bpa), 1))
-
-        return np.mean(continuity_scores) if continuity_scores else 0.0
 
     def compare_edge_histograms(self, hist1, hist2):
         """Compare two edge orientation histograms via chi-square distance. Returns a score in [0, 1]."""
@@ -176,14 +132,3 @@ class EdgeAnalyzer:
         except Exception as e:
             print(f"❌ Error in edge validation: {e}")
             return False, 0.0, {}
-
-    def visualize_edges(self, image, method='canny'):
-        """Return the edge image computed by the specified detection method."""
-        if method == 'canny':
-            return self.detect_edges_canny(image)
-        elif method == 'sobel':
-            return self.detect_edges_sobel(image)
-        elif method == 'laplacian':
-            return self.detect_edges_laplacian(image)
-        else:
-            raise ValueError(f"Unknown method: {method}")
