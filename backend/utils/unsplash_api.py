@@ -58,22 +58,26 @@ class UnsplashAPI:
             active_query = query if query else random.choice(self._DEFAULT_QUERIES)
 
             params = {
-                'orientation': orientation,
+                'orientation': orientation, #shape of image
                 'count': 1,
                 'query': active_query,
                 'content_filter': 'high',  # child-safe content only
                 'color': random.choice(self._BRIGHT_COLORS),
             }
-
+            
+            # Request 1: ask Unsplash for a matching photo's metadata (URLs, not pixel data yet)
             response = _get_thread_session().get(url, headers=headers, params=params, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
                 image_data = data[0] if isinstance(data, list) and len(data) > 0 else data
 
+                # full-size image URL, used for processing
                 image_url = image_data['urls'][size]
+                # small preview URL, sent to frontend as-is
                 thumb_url = image_data['urls'].get('small', image_url)
-
+                
+                # Request 2: actually download the image bytes from image_url
                 img_response = _get_thread_session().get(image_url, timeout=10)
 
                 if img_response.status_code == 200:
@@ -85,7 +89,7 @@ class UnsplashAPI:
                     else:
                         image_bgr = image_np
 
-                    return image_bgr, thumb_url
+                    return image_bgr, thumb_url  # image_bgr = actual pixel data; thumb_url = just a link
                 else:
                     print(f"❌ Failed to download image: {img_response.status_code}")
                     return self._get_random_image_fallback(), ''
