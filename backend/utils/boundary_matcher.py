@@ -23,23 +23,28 @@ class BoundaryMatcher:
 
         boundaries = {}
 
+        # check if there is enough space above the hole to extract the boundary strips, otherwise return None for that direction
         if y >= self.boundary_width:
-            boundaries['top'] = puzzle_image[y - self.boundary_width:y, x:x + w]
+            boundaries['top'] = puzzle_image[y -
+                                             self.boundary_width:y, x:x + w]
         else:
             boundaries['top'] = None
 
         if y + h + self.boundary_width <= puzzle_image.shape[0]:
-            boundaries['bottom'] = puzzle_image[y + h:y + h + self.boundary_width, x:x + w]
+            boundaries['bottom'] = puzzle_image[y +
+                                                h:y + h + self.boundary_width, x:x + w]
         else:
             boundaries['bottom'] = None
 
         if x >= self.boundary_width:
-            boundaries['left'] = puzzle_image[y:y + h, x - self.boundary_width:x]
+            boundaries['left'] = puzzle_image[y:y +
+                                              h, x - self.boundary_width:x]
         else:
             boundaries['left'] = None
 
         if x + w + self.boundary_width <= puzzle_image.shape[1]:
-            boundaries['right'] = puzzle_image[y:y + h, x + w:x + w + self.boundary_width]
+            boundaries['right'] = puzzle_image[y:y +
+                                               h, x + w:x + w + self.boundary_width]
         else:
             boundaries['right'] = None
 
@@ -62,15 +67,20 @@ class BoundaryMatcher:
         if boundary1 is None or boundary2 is None:
             return 0.0
 
+        # strips can differ in shape if one came from the hole edge and one from a resized piece
         if boundary1.shape != boundary2.shape:
-            boundary2 = cv2.resize(boundary2, (boundary1.shape[1], boundary1.shape[0]))
+            boundary2 = cv2.resize(
+                boundary2, (boundary1.shape[1], boundary1.shape[0]))
 
         avg1 = boundary1.mean(axis=(0, 1))
         avg2 = boundary2.mean(axis=(0, 1))
 
         distance = euclidean(avg1, avg2)
+
+        # largest possible distance between two BGR colors
         max_distance = np.sqrt(3 * 255**2)
 
+        # 0 distance -> score 1, max distance -> score 0
         return max(0, min(1, 1 - (distance / max_distance)))
 
     def compare_boundary_histograms(self, boundary1, boundary2):
@@ -79,13 +89,18 @@ class BoundaryMatcher:
             return 0.0
 
         if boundary1.shape != boundary2.shape:
-            boundary2 = cv2.resize(boundary2, (boundary1.shape[1], boundary1.shape[0]))
+            boundary2 = cv2.resize(
+                boundary2, (boundary1.shape[1], boundary1.shape[0]))
 
+        # HSV is more robust to lighting differences than BGR
         hsv1 = cv2.cvtColor(boundary1, cv2.COLOR_BGR2HSV)
         hsv2 = cv2.cvtColor(boundary2, cv2.COLOR_BGR2HSV)
 
-        hist1 = cv2.calcHist([hsv1], [0, 1, 2], None, [8, 8, 8], [0, 180, 0, 256, 0, 256])
-        hist2 = cv2.calcHist([hsv2], [0, 1, 2], None, [8, 8, 8], [0, 180, 0, 256, 0, 256])
+        # full color distribution (8x8x8 bins), not just one average color
+        hist1 = cv2.calcHist([hsv1], [0, 1, 2], None, [
+                             8, 8, 8], [0, 180, 0, 256, 0, 256])
+        hist2 = cv2.calcHist([hsv2], [0, 1, 2], None, [
+                             8, 8, 8], [0, 180, 0, 256, 0, 256])
 
         hist1 = cv2.normalize(hist1, hist1).flatten()
         hist2 = cv2.normalize(hist2, hist2).flatten()
@@ -99,10 +114,15 @@ class BoundaryMatcher:
             target_h = missing_position['height']
             target_w = missing_position['width']
 
+            # make sure the piece matches the hole's exact size before comparing strips
+            # it is not always matches bause of function _split_image_into_pieces
             if selected_piece.shape[:2] != (target_h, target_w):
-                selected_piece = cv2.resize(selected_piece, (target_w, target_h))
+                selected_piece = cv2.resize(
+                    selected_piece, (target_w, target_h))
 
-            puzzle_boundaries = self.extract_boundaries(puzzle_image, missing_position)
+            # grab the 4 real-image strips around the hole, and the 4 matching edge strips of the piece
+            puzzle_boundaries = self.extract_boundaries(
+                puzzle_image, missing_position)
             piece_boundaries = self.extract_piece_boundaries(selected_piece)
 
             scores = {}
@@ -113,11 +133,14 @@ class BoundaryMatcher:
 
                 if puzzle_bound is not None and piece_bound is not None:
                     # 70% weight to histograms, 30% to average color
-                    hist_score = self.compare_boundary_histograms(puzzle_bound, piece_bound)
-                    color_score = self.compare_boundary_colors(puzzle_bound, piece_bound)
+                    hist_score = self.compare_boundary_histograms(
+                        puzzle_bound, piece_bound)
+                    color_score = self.compare_boundary_colors(
+                        puzzle_bound, piece_bound)
                     scores[direction] = 0.7 * hist_score + 0.3 * color_score
                 # Zone is at the image edge — skip this direction rather than penalise with 0.0
 
+            # final score = average over however many directions were actually available (2-4)
             confidence = np.mean(list(scores.values())) if scores else 0.0
             is_match = confidence >= 0.70
 

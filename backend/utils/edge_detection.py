@@ -19,6 +19,7 @@ class EdgeAnalyzer:
         else:
             gray = image
 
+        # blurred - smooth noise before Canny (5x5 kernel- radius from center), sigma=1.4 (is Canny's classic recommended value)
         blurred = cv2.GaussianBlur(gray, (5, 5), 1.4)
         return cv2.Canny(blurred, low_threshold, high_threshold)
 

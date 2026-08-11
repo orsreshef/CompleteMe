@@ -19,6 +19,7 @@ class FeatureExtractor:
         self.model = self._load_model()
         self.model.eval()
 
+        #organize this info in the shapes we want to use for the model
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -32,8 +33,10 @@ class FeatureExtractor:
 
     def _load_model(self):
         """Load the pretrained backbone and strip the classification head."""
+        #we only use this model (ResNet50) in our project 
         if self.model_name == 'resnet50':
             model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+            # drop the final fc (classification) layer, keep everything before it
             model = torch.nn.Sequential(*list(model.children())[:-1])
 
         elif self.model_name == 'resnet18':
@@ -75,7 +78,7 @@ class FeatureExtractor:
     def compare_features(self, features1, features2, method='cosine'):
         """Compare two feature vectors and return a similarity score in [0, 1]."""
         if method == 'cosine':
-            # cosine distance: 0 = identical, 1 = orthogonal; invert to get similarity
+            # cosine distance (Angle): 0 = identical, 1 = orthogonal; invert to get similarity
             similarity = 1 - cosine(features1.flatten(), features2.flatten())
         elif method == 'euclidean':
             distance = euclidean(features1.flatten(), features2.flatten())
