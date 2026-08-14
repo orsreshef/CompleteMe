@@ -148,35 +148,35 @@ A full-stack application combining:
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────┐
 │                       Frontend (React)                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ ┌────────┐  │
-│  │ Welcome  │ │  Login / │ │  Game    │ │History │ │ Edit   │  │
-│  │ Screen   │ │  Signup  │ │  Board   │ │ Screen │ │Profile │  │
-│  └──────────┘ └──────────┘ └──────────┘ └────────┘ └────────┘  │
-└──────────────────────────────┬──────────────────────────────────┘
+│   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ ┌────────┐   │
+│   │ Welcome  │ │  Login / │ │  Game    │ │History │ │ Edit   │   │
+│   │ Screen   │ │  Signup  │ │  Board   │ │ Screen │ │Profile │   │
+│   └──────────┘ └──────────┘ └──────────┘ └────────┘ └────────┘   │
+└──────────────────────────────┬───────────────────────────────────┘
                                │ REST API (JSON, HTTP-only cookies)
-┌──────────────────────────────▼──────────────────────────────────┐
+┌──────────────────────────────▼───────────────────────────────────┐
 │                      Backend (Flask)                             │
-│  ┌─────────────────────────┐   ┌─────────────────────────────┐  │
-│  │   app.py (puzzle routes)│   │  routes/auth.py (auth routes│  │
-│  │  /puzzle/create         │   │  /auth/register  /auth/login│  │
+│  ┌─────────────────────────┐   ┌──────────────────────────────┐  │
+│  │   app.py (puzzle routes)│   │  routes/auth.py (auth routes │  │
+│  │  /puzzle/create         │   │  /auth/register  /auth/login │  │
 │  │  /puzzle/validate       │   │  /auth/me        /auth/logout│  │
-│  │  /puzzle/hint           │   │  /auth/history              │  │
-│  └───────────┬─────────────┘   │  /auth/update-avatar        │  │
+│  │  /puzzle/hint           │   │  /auth/history               │  │
+│  └───────────┬─────────────┘   │  /auth/update-avatar         │  │
 │              │                 │  /auth/change-password       │  │
-│  ┌───────────▼─────────────┐   │  /auth/delete-account       │  │
-│  │    Puzzle Generator     │   └──────────────┬──────────────┘  │
+│  ┌───────────▼─────────────┐   │  /auth/delete-account        │  │
+│  │    Puzzle Generator     │   └──────────────┬───────────────┘  │
 │  │  (parallel image fetch) │                  │                  │
-│  └───────────┬─────────────┘   ┌──────────────▼──────────────┐  │
+│  └───────────┬─────────────┘   ┌──────────────▼───────────────┐  │
 │              │                 │  PostgreSQL (via SQLAlchemy) │  │
-│  ┌───────────▼─────────────┐   │  User | GameHistory tables  │  │
-│  │      CV Validator        │   └─────────────────────────────┘  │
+│  ┌───────────▼─────────────┐   │  User | GameHistory tables   │  │
+│  │      CV Validator       │   └──────────────────────────────┘  │
 │  │  Boundary Matching (HSV)│                                     │
 │  │  ResNet50 (tiebreaker)  │                                     │
 │  │  LBP / Color / Edge     │                                     │
 │  └─────────────────────────┘                                     │
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -462,7 +462,6 @@ ai-puzzle-game/
 │   └── utils/
 │       ├── boundary_matcher.py   # Primary CV: HSV boundary matching
 │       ├── feature_extraction.py # ResNet50 deep features (tiebreaker)
-│       ├── color_analysis.py     # Color histogram analysis
 │       ├── texture_analysis.py   # LBP texture analysis
 │       ├── edge_detection.py     # Canny / Hausdorff edge matching
 │       └── unsplash_api.py       # Unsplash image fetching
